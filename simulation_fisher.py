@@ -1,5 +1,6 @@
-import communication as com
-import problem_entities as prob
+from communication import CreatorDelaysEl
+from mailers import MailerFisher
+from problem_entities import Problem_Distributed
 
 '''
 market parameters:
@@ -22,58 +23,70 @@ type_communication= 1 is the requested, add more in the future in script communi
 
 def get_parameters(std_util=150, mu_util=500, portion_extra_desire=0.3, factor_mu_extra_desire=200, agents_num=14,
                            missions_num=14, start=0,
-                           end=100, termination=1000, type_communication=1):
+                           end=100, termination=1000, type_communication=1, algorithm =1 ):
     #creator_delay = None
     if type_communication == 1:
-        creator_delay = com.CreatorDelaysEl()
+        creator_delay = CreatorDelaysEl()
 
     protocols = creator_delay.create_protocol_delay()
+
+    mailer_params = {'protocols_list': protocols, 'protocol header':creator_delay.header(), 'termination':termination,'algorithm':algorithm}
     problem = {'std_util': std_util, 'mu_util': mu_util, 'portion_extra_desire': portion_extra_desire,
                'factor_mu_extra_desire': factor_mu_extra_desire,
-               'agents_num': agents_num, 'missions_num': missions_num}
-
-    if creator_delay is None:
-        print("type_communication number is not vaild sent to getDefaultParameters method")
-
-    simulator = {'start': start, 'end': end}
-
-    return problem, simulator, termination, protocols
+               'agents_num': agents_num, 'missions_num': missions_num, 'start': start, 'end': end}
 
 
-def create_problems(problem_p, simulator_p):
+
+
+    return problem, mailer_params
+
+def create_problems(problem_p):
     # parameters for simulation
-    start = simulator_p['start']
-    end = simulator_p['end']
+    start = problem_p['start']
+    end = problem_p['end']
 
     ans = []
 
     for i in range(start, end):
-        problem_i = prob.Distributed_Problem(prob_id=i, agents_num=problem_p['agents_num'], missions_num=problem_p['missions_num'],
-                                     mu_util=problem_p['mu_util'], std_util=problem_p['std_util'],
-                                     portion_extra_desire=problem_p['portion_extra_desire'],
-                                     factor_extra_desire=problem_p['factor_mu_extra_desire'])
+        problem_i = Problem_Distributed(prob_id=i, agents_num=problem_p['agents_num'], missions_num=problem_p['missions_num'],
+                                             mu_util=problem_p['mu_util'], std_util=problem_p['std_util'],
+                                             portion_extra_desire=problem_p['portion_extra_desire'],
+                                             factor_extra_desire=problem_p['factor_mu_extra_desire'])
 
         ans.append(problem_i)
-
-
-
 
     return ans
 
 
-if __name__ == "__main__":
-    problem_parameters, simulator_parameters, termination, delay_protocols = get_parameters()
-    problems = create_problems(problem_parameters = problem_parameters, simulator_parameters = simulator_parameters)
-    algorithm = 1 # 1 = fisher
-    mailers_map = {}
-    for delay_protocol in delay_protocols:
+
+def create_mailer_given_algo(mailer_parameters, problem, delay_protocol):
+    termination = mailer_parameters['termination']
+    algorithm_number = mailer_parameters['algorithm']
+    if algorithm_number == 1:
+        return MailerFisher(termination, problem, delay_protocol)
+
+
+def solve_problem(problems_created, mailer_parameters):
+    protocols = mailer_parameters['protocols_list']
+
+
+    full_data = []
+    to_avg_map = {}
+    for delay_protocol in protocols:
         mailers_with_same_delay_protocol = []
-        for problem in problems:
-        mailer = Mailer(delay_protocols, problem.agents, algorithm)
-        agents_meet_mailer(mailer, problem.agents)
-        mailer.execute()
-        mailers_with_same_delay_protocol.append(mailer.data)
-    mailers_map[delay_protocol]=mailers_with_same_delay_protocol
+        for problem in problems_created:
+            mailer = create_mailer(mailer_parameters, problem)
+            mailer.execute()
+            mailers_with_same_delay_protocol.append(mailer.data_map())
+            full_data.append(mailer.results)
+        to_avg_map[delay_protocol] = mailers_with_same_delay_protocol
+    return full_data, to_avg_map
+
+if __name__ == "__main__":
+    problem_parameters, mailer_parameters = get_parameters()
+    problems = create_problems(problem_p = problem_parameters)
+    full_data, to_avg_map = solve_problem(mailer_parameters)
+
 
 
 

@@ -27,17 +27,15 @@ class ProtocolDelay(object):
     def create_delay_specific(self, distance_ij):
         raise NotImplementedError()
 
-    def create_delay(self, q_ij, distance_ij):
-        if q_ij == 0:
-            return 0
+    def create_delay(self, distance_ij=1):
+
+        self.gamma_counter = self.gamma_counter + 100
+        random.seed(self.gamma_counter * 10)
+        rnd = random.random()
+        if rnd < self.gamma:
+            return None
         else:
-            self.gamma_counter = self.gamma_counter + 100
-            random.seed(self.gamma_counter * 10)
-            rnd = random.random()
-            if rnd < self.gamma:
-                return None
-            else:
-                self.create_delay_specific(distance_ij)
+            self.create_delay_specific(distance_ij)
 
     def set_seed_specific(self, seed):
         raise NotImplementedError()
@@ -74,7 +72,7 @@ class ProtocolDelayEl(ProtocolDelay):
         self.rnd_noise_counter = seed * 365
 
     def calc_noise(self):
-        self.rnd_noise_counter= self.rnd_noise_counter+ 21
+        self.rnd_noise_counter = self.rnd_noise_counter + 21
         random.seed(self.rnd_noise_counter * 34)
         rnd = random.random()
 
@@ -96,7 +94,7 @@ class ProtocolDelayEl(ProtocolDelay):
 
         self.rnd_normal_counter = self.rnd_noise_counter + 456
         random.seed(self.rnd_normal_counter * 34)
-        return random.gauss(mu = mu, sigma = self.sigma)
+        return random.gauss(mu=mu, sigma=self.sigma)
 
     def __str__(self):
         super.__str__() + "," + str(self.gamma) + "," + str(self.mu_min) + "," + str(self.n1) + "," + str(

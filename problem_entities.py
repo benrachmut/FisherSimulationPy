@@ -1,4 +1,5 @@
 import random
+from builtins import print
 
 
 class Mission(object):
@@ -15,43 +16,49 @@ class Mission(object):
 
 
 class Agent(object):
-    def __init__(self, agent_id, problem_id=None, missions=None, util_parameters=None):
+    def __init__(self, agent_id, problem_id=None, util_parameters=None):
         self.problem_id = problem_id
         self.agent_id = agent_id
-        self.utils_of_missions = {}
-        self.create_utils_of_missions(missions=missions, util_parameters=util_parameters)
-        self.taskResponsibility = []
-
+        self.missions_utils = {}
+        self.util_parameters = util_parameters
+        self.mission_responsibility = []
 
     def reset(self):
-        self.taskResponsibility = []
+        self.mission_responsibility = []
 
     def add_to_task_responsibility(self, mission):
-        self.taskResponsibility.append(mission)
+        self.mission_responsibility.append(mission)
 
     def get_task_responsibility_size(self):
-        return len(self.taskResponsibility)
+        return len(self.mission_responsibility)
 
-    def create_utils_of_missions(self, missions, util_parameters):
+    #creates random utilities to all missions in list, given if they are more desired, for fisher simulator
+    def create_missions_random_utils(self, missions):
         extra_desire_counter = self.problem_id * 100 + self.agent_id * 1000
         standard_desire_counter = self.problem_id * 89 + self.agent_id * 74
 
-        for i in len(missions):
+        for i in range(len(missions)):
             mission = self.missions[i]
             is_mission_extra_desired = mission.extra_desire
 
             if is_mission_extra_desired:
                 extra_desire_counter = extra_desire_counter + 78
                 random.seed(extra_desire_counter)
-                util = random.gauss(mu=util_parameters['mu_util_extra_desire'], sigma=util_parameters['std_util'])
+                util = random.gauss(mu=self.util_parameters['mu_util_extra_desire'], sigma=self.util_parameters['std_util'])
             else:
                 standard_desire_counter = standard_desire_counter + 457
                 random.seed(standard_desire_counter)
-                util = random.gauss(mu=util_parameters['mu_util'], sigma=util_parameters['std_util'])
+                util = random.gauss(mu=self.util_parameters['mu_util'], sigma=self.util_parameters['std_util'])
 
-            self.utils_of_missions[mission] = util
+            self.missions_utils[mission] = util
 
-
+    def create_missions_utils(self, missions, random_utils=True):
+        if random_utils:
+            self.create_missions_random_utils(missions)
+        else:
+            self.missions_utils = {}
+            print("sofi needs to complete")
+            raise NotImplementedError()
 
 
 class Problem(object):
@@ -81,8 +88,7 @@ class Problem(object):
 
     def create_agents(self, agents_num):
         for i in range(agents_num):
-            agent = Agent(problem_id=self.prob_id, agent_id=i, missions=self.missions,
-                          util_parameters=self.util_parameters)
+            agent = Agent(problem_id=self.prob_id, agent_id=i, util_parameters=self.util_parameters)
             self.agents.append(agent)
 
     def __str__(self):
@@ -96,12 +102,13 @@ class Problem(object):
                "Amount of Extra Desire Missions, "
 
 
-class Distributed_Problem(Problem):
+
+class Problem_Distributed(Problem):
 
     def __init__(self, prob_id, agents_num, missions_num, mu_util, std_util, portion_extra_desire, factor_extra_desire):
         Problem.__init__(self, prob_id, agents_num, missions_num, mu_util, std_util, portion_extra_desire,
                          factor_extra_desire)
-        self.create_agents(agents_num=agents_num)
+
         self.connect_mission_to_agent(missions_num=missions_num, agent_num=agents_num)
 
     def connect_mission_to_agent(self, missions_num, agent_num):
@@ -113,7 +120,7 @@ class Distributed_Problem(Problem):
                 for j in range(agent_num):
                     agent = self.agents[j]
                     if agent.get_task_responsibility_size() == counter:
-                        agent.add_to_task_responsibility(mission = mission)
+                        agent.add_to_task_responsibility(mission=mission)
                         mission.set_assigned_agent(agent)
                         flag = True
                         break
