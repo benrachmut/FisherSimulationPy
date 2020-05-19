@@ -16,11 +16,11 @@ class Mission(object):
 
 
 class Agent(object):
-    def __init__(self, agent_id, problem_id=None, util_parameters=None):
+    def __init__(self, agent_id, problem_id=None):
         self.problem_id = problem_id
         self.agent_id = agent_id
         self.missions_utils = {}
-        self.util_parameters = util_parameters
+        #self.util_parameters = util_parameters
         self.mission_responsibility = []
 
     def reset(self):
@@ -33,7 +33,7 @@ class Agent(object):
         return len(self.mission_responsibility)
 
     #creates random utilities to all missions in list, given if they are more desired, for fisher simulator
-    def create_missions_random_utils(self, missions):
+    def create_missions_random_utils(self, missions, util_parameters):
         extra_desire_counter = self.problem_id * 100 + self.agent_id * 1000
         standard_desire_counter = self.problem_id * 89 + self.agent_id * 74
 
@@ -44,31 +44,28 @@ class Agent(object):
             if is_mission_extra_desired:
                 extra_desire_counter = extra_desire_counter + 78
                 random.seed(extra_desire_counter)
-                util = random.gauss(mu=self.util_parameters['mu_util_extra_desire'], sigma=self.util_parameters['std_util'])
+                util = random.gauss(mu=util_parameters['mu_util_extra_desire'], sigma=util_parameters['std_util'])
             else:
                 standard_desire_counter = standard_desire_counter + 457
                 random.seed(standard_desire_counter)
-                util = random.gauss(mu=self.util_parameters['mu_util'], sigma=self.util_parameters['std_util'])
+                util = random.gauss(mu=util_parameters['mu_util'], sigma=util_parameters['std_util'])
 
             self.missions_utils[mission] = util
 
-    def create_missions_utils(self, missions, random_utils=True):
-        if random_utils:
-            self.create_missions_random_utils(missions)
-        else:
+    def create_missions_utils(self, missions):
             self.missions_utils = {}
             print("sofi needs to complete")
             raise NotImplementedError()
 
 
+
+
+
 class Problem(object):
 
-    def __init__(self, prob_id, agents_num, missions_num, mu_util, std_util, portion_extra_desire,
-                 factor_mu_extra_desire, ):
+    def __init__(self, prob_id, agents_num, missions_num, extra_desire):
         self.prob_id = prob_id
-        extra_desire_num = round(agents_num * portion_extra_desire)
-        self.util_parameters = {'mu_util': mu_util, 'mu_util_extra_desire': mu_util * factor_mu_extra_desire,
-                                'extra_desire_num': extra_desire_num, 'std_util': std_util}
+        self.extra_desire_num = extra_desire
 
         # generate entities
         self.missions = []
@@ -88,13 +85,11 @@ class Problem(object):
 
     def create_agents(self, agents_num):
         for i in range(agents_num):
-            agent = Agent(problem_id=self.prob_id, agent_id=i, util_parameters=self.util_parameters)
+            agent = Agent(problem_id=self.prob_id, agent_id=i)
             self.agents.append(agent)
 
     def __str__(self):
-        return str(self.prob_id) + "," + str(self.agents_num) + "," + str(self.missions_num) + "," + str(
-            self.util_parameters['mu_util']) + "," + str(self.util_parameters['std_util']) + "," + str(
-            self.util_parameters['mu_util_extra_desire']) + "," + str(self.util_parameters['extra_desire_num'])
+        return str(self.prob_id) + "," + str(self.agents_num) + "," + str(self.missions_num)
 
     @staticmethod
     def header():
@@ -105,9 +100,8 @@ class Problem(object):
 
 class Problem_Distributed(Problem):
 
-    def __init__(self, prob_id, agents_num, missions_num, mu_util, std_util, portion_extra_desire, factor_extra_desire):
-        Problem.__init__(self, prob_id, agents_num, missions_num, mu_util, std_util, portion_extra_desire,
-                         factor_extra_desire)
+    def __init__(self, prob_id, agents_num, missions_num, extra_desire):
+        Problem.__init__(self, prob_id, agents_num, missions_num, extra_desire)
 
         self.connect_mission_to_agent(missions_num=missions_num, agent_num=agents_num)
 
