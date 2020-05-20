@@ -62,7 +62,7 @@ def create_problems(problem_p):
 
 
 
-def create_mailer_given_algo(mailer_parameters, problem, delay_protocol):
+def create_mailer(mailer_parameters, problem, delay_protocol):
     termination = mailer_parameters['termination']
     algorithm_number = mailer_parameters['algorithm']
     if algorithm_number == 1:
@@ -71,7 +71,7 @@ def create_mailer_given_algo(mailer_parameters, problem, delay_protocol):
 
 def solve_problem(problems_created, mailer_params, algo_params_map):
     protocols = mailer_params['protocols_list']
-    algorithm_selected_number  = mailer_params['algorithm']
+    algorithm_selected_number = mailer_params['algorithm']
     algorithm_param = algo_params_map[algorithm_selected_number]
 
     full_data = []
@@ -79,7 +79,7 @@ def solve_problem(problems_created, mailer_params, algo_params_map):
     for delay_protocol in protocols:
         mailers_with_same_delay_protocol = []
         for problem in problems_created:
-            mailer = create_mailer(mailer_params, problem, algorithm_param, algorithm_selected_number)
+            mailer = create_mailer(...)
             mailer.execute()
             mailers_with_same_delay_protocol.append(mailer.data_map())
             full_data.append(mailer.results)

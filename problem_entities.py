@@ -20,11 +20,15 @@ class Agent(object):
         self.problem_id = problem_id
         self.agent_id = agent_id
         self.missions_utils = {}
-        #self.util_parameters = util_parameters
         self.mission_responsibility = []
+        self.msg_time_stamp = 0
 
     def reset(self):
         self.mission_responsibility = []
+        self.msg_time_stamp = 0
+
+    def update_time_stamp(self):
+        self.msg_time_stamp = self.msg_time_stamp+1
 
     def add_to_task_responsibility(self, mission):
         self.mission_responsibility.append(mission)
