@@ -19,16 +19,23 @@ class Agent(object):
     def __init__(self, agent_id, problem_id=None):
         self.problem_id = problem_id
         self.agent_id = agent_id
-        self.missions_utils = {}
         self.mission_responsibility = []
         self.msg_time_stamp = 0
+        # **fisher fields**
+        self.missions_utils = {}
+        self.message_bids_received = {}  # msg from agent to mission
+        self.message_allocation_received = {}  # msg from mission to agent
+        self.bid_placed_for_missions = {}
+        self.updated_utilities_map = {}
+        self.threshold = 0.0001
 
     def reset(self):
         self.mission_responsibility = []
         self.msg_time_stamp = 0
 
+    # 1.3.2 called from mailer, agents reaction to msg increases agent time stamp before sending msgs
     def update_time_stamp(self):
-        self.msg_time_stamp = self.msg_time_stamp+1
+        self.msg_time_stamp = self.msg_time_stamp + 1
 
     def add_to_task_responsibility(self, mission):
         self.mission_responsibility.append(mission)
@@ -36,7 +43,9 @@ class Agent(object):
     def get_task_responsibility_size(self):
         return len(self.mission_responsibility)
 
-    #creates random utilities to all missions in list, given if they are more desired, for fisher simulator
+    # 1.1.1 **prepare_algorithm_input**
+    # *Fisher*
+    # creates random utilities to all missions in list, given if they are more desired, for fisher simulator
     def create_missions_random_utils(self, missions, util_parameters):
         extra_desire_counter = self.problem_id * 100 + self.agent_id * 1000
         standard_desire_counter = self.problem_id * 89 + self.agent_id * 74
@@ -56,13 +65,27 @@ class Agent(object):
 
             self.missions_utils[mission] = util
 
+        # 1.1.1 called from prepare_fields,
+
+    # creates utilities to all missions in list from simulator
     def create_missions_utils(self, missions):
-            self.missions_utils = {}
-            print("sofi needs to complete")
-            raise NotImplementedError()
+        self.missions_utils = {}
+        print("from agent: sofi needs to complete")
+        raise NotImplementedError()
 
+    # 1.3.1 **agents_initialize**
+    # *Fisher*
+    def initialize_fisher(self, threshold):
+        self.initFields(threshold)
+        self.bid_placed_for_missions
 
-
+    def initFields(self, threshold):
+        self.missions_utils = {}
+        self.message_bids_received = {}  # msg from agent to mission
+        self.message_allocation_received = {}  # msg from mission to agent
+        self.bid_placed_for_missions = {}
+        self.updated_utilities_map = {}
+        self.threshold = 0.0001
 
 
 class Problem(object):
@@ -99,7 +122,6 @@ class Problem(object):
     def header():
         return "Problem Id,Agents Amount,Missions Amount,Utility Mean, Utility Std, Mean of Missions with Desire, " \
                "Amount of Extra Desire Missions, "
-
 
 
 class Problem_Distributed(Problem):
