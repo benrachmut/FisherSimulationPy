@@ -26,8 +26,6 @@ class Mailer(object):
         self.receives_in_current_iteration = {}
 
 
-
-
 class MailerDistributed(Mailer):
     def __init__(self, agents, missions, delay_protocol, termination):
         Mailer.__init__(self, agents, missions, delay_protocol, termination)
@@ -38,8 +36,7 @@ class MailerDistributed(Mailer):
         for agent in self.agents:
             self.agent_host_missions_map[agent] = agent.taskResponsibility
 
-
- # 1. initiate the simulator
+    # 1. initiate the simulator
     def execute(self):
         self.prepare_fields()
 
@@ -75,13 +72,14 @@ class MailerDistributed(Mailer):
             if iteration == 0:
                 self.agents_initialize(agent)
             else:
-                self.reaction_to_algorithmic_msgs(agent)
+                if agent in self.receives_in_current_iteration:
+                    self.reaction_to_algorithmic_msgs(agent)
 
     # 1.3.1 called from agents_react_to_msgs, abs method, first iteration that initialize the algorithm
     def agents_initialize(self, agent):
         raise NotImplementedError()
 
-    # 1.3.2 called from agents_react_to_msgs, abs method, agents reaction to msg
+    # 1.3.2 called from agents_react_to_msgs, agents reaction to msg
     def reaction_to_algorithmic_msgs(self, agent):
         self.compute(agent)
         agent.update_time_stamp()
@@ -158,19 +156,16 @@ class MailerDistributed(Mailer):
         else:
             return None
 
+
 class MailerFisher(MailerDistributed):
-    def __init__(self, agents, missions, delay_protocol, termination, threshold, is_random_util,
-                 random_utils_parameters):
+    def __init__(self, agents, missions, delay_protocol, termination, threshold, is_random_util):
         Mailer.__init__(self, agents, missions, delay_protocol, termination)
         self.threshold = threshold
         self.is_random_util = is_random_util
-        self.random_utils_parameters = random_utils_parameters
 
     # 1.1.1 called from prepare_fields, abs method, agent prepares input, utilities for each mission
     def prepare_algorithm_input(self, agent):
-        if self.is_random_util:
-            agent.create_missions_random_utils(missions=self.missions, util_parameters=self.random_utils_parameters)
-        else:
+        if not self.is_random_util:
             print("from mailer: sofi needs to complete")
             raise NotImplementedError()
             agent.create_missions_utils(self, missions=self.missions)
@@ -183,9 +178,6 @@ class MailerFisher(MailerDistributed):
     def agents_initialize(self, agent):
         agent.initialize_fisher(self.threshold)
 
-    # 1.3.2 called from agents_react_to_msgs, abs method, agents reaction to msg
-    def reaction_to_algorithmic_msgs(self, agent):
-        agent.reaction_to_algorithmic_msgs_fisher()
-
-
+    # 1.3.2.1 called from reaction_to_algorithmic_msgs, abs method, agent's computation due to new information
+    def compute(self, agent)
 

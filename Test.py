@@ -4,10 +4,11 @@ print(isinstance(MsgAllocation(sender_id = 3, receiver_id=4, context=5, time_sta
 l = list(range(10))
 print(l)
 ans = {}
-ans[1]="a"
-ans[2]="b"
-ans[3]="n"
+ans["a"]=1
+ans["b"]=2
+ans["c"]=3
 
+print("sum "+ str(sum(ans.values()*ans.values())))
 for key, value in ans.items():
     print(key)
     print(value)

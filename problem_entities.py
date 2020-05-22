@@ -16,18 +16,30 @@ class Mission(object):
 
 
 class Agent(object):
-    def __init__(self, agent_id, problem_id=None):
+    def __init__(self, agent_id, problem_id=None, ):
         self.problem_id = problem_id
         self.agent_id = agent_id
         self.mission_responsibility = []
         self.msg_time_stamp = 0
         # **fisher fields**
-        self.missions_utils = {}
-        self.message_bids_received = {}  # msg from agent to mission
-        self.message_allocation_received = {}  # msg from mission to agent
-        self.bid_placed_for_missions = {}
-        self.updated_utilities_map = {}
+
+        # *agent fields
+        self.r_i = {}
+        self.x_i = {}  # msg from mission to agent
+        self.message_x_i_received = {}  # msg from mission to agent
+
+        self.bids_to_send = False
+        self.allocation_to_send = False
+        self.msgs_from_hosted_missions = []
+
+
+
         self.threshold = 0.0001
+        self.bid_placed_for_missions = {}
+
+
+
+
 
     def reset(self):
         self.mission_responsibility = []
@@ -63,34 +75,52 @@ class Agent(object):
                 random.seed(standard_desire_counter)
                 util = random.gauss(mu=util_parameters['mu_util'], sigma=util_parameters['std_util'])
 
-            self.missions_utils[mission] = util
+            self.r_i[mission] = util
 
         # 1.1.1 called from prepare_fields,
 
     # creates utilities to all missions in list from simulator
     def create_missions_utils(self, missions):
-        self.missions_utils = {}
+        self.r_i = {}
         print("from agent: sofi needs to complete")
         raise NotImplementedError()
 
     # 1.3.1 **agents_initialize**
     # *Fisher*
-    def initialize_fisher(self, threshold):
-        self.initFields(threshold)
-        self.bid_placed_for_missions
+    def initialize_fisher(self, threshold1):
+        self.init_fields(threshold1=threshold1)
+        self.place_initial_bids()
 
-    def initFields(self, threshold):
-        self.missions_utils = {}
-        self.message_bids_received = {}  # msg from agent to mission
-        self.message_allocation_received = {}  # msg from mission to agent
-        self.bid_placed_for_missions = {}
-        self.updated_utilities_map = {}
-        self.threshold = 0.0001
+    def init_fields(self, threshold1):
+        self.x_i = {}  # msg from mission to agent
+        self.message_x_i_received = {}  # msg from mission to agent
+        self.msgs_from_hosted_missions = []
+        self.threshold = threshold1
+        for mission in self.r_i.keys():
+            self.x_i[mission] = 0
+
+        self.bids_to_send = False
+        self.allocation_to_send = False
+
+    def place_initial_bids(self):
+        rx_i = 0
+        for mission in self.r_i.keys():
+            rx_i = rx_i+self.r_i.get(mission)*1
+        denominator = sum(rx_i)
+        for mission in self.r_i.keys():
+            rx_ij = self.r_i*1
+            self.bid_placed_for_missions[mission] = rx_ij / denominator
+        self.bids_to_send = True
+
+
+
+
+
 
 
 class Problem(object):
 
-    def __init__(self, prob_id, agents_num, missions_num, extra_desire):
+    def __init__(self, prob_id, agents_num, missions_num, extra_desire, is_random_util, fisher_utils_params):
         self.prob_id = prob_id
         self.extra_desire_num = extra_desire
 
@@ -99,6 +129,9 @@ class Problem(object):
         self.create_missions(missions_num=missions_num)
         self.agents = []
         self.create_agents(agents_num=agents_num)
+        if is_random_util:
+            for agent in self.agents:
+                agent.create_missions_random_utils(util_parameters=fisher_utils_params)
 
     def create_missions(self, missions_num):
         counter_extra_desire = self.extra_desire_num
@@ -126,8 +159,8 @@ class Problem(object):
 
 class Problem_Distributed(Problem):
 
-    def __init__(self, prob_id, agents_num, missions_num, extra_desire):
-        Problem.__init__(self, prob_id, agents_num, missions_num, extra_desire)
+    def __init__(self, prob_id, agents_num, missions_num, extra_desire, is_random_util, fisher_utils_params):
+        Problem.__init__(self, prob_id, agents_num, missions_num, extra_desire, is_random_util, fisher_utils_params)
 
         self.connect_mission_to_agent(missions_num=missions_num, agent_num=agents_num)
 
