@@ -16,12 +16,18 @@ class MsgFisher(Msg):
     def __init__(self, sender_id, receiver_id, context, time_stamp):
         Msg.__init__(self, sender_id, receiver_id, context, time_stamp)
 
-
-class MsgBid(MsgFisher):
-    def __init__(self, sender_id, receiver_id, context, time_stamp):
+# From agent to mission
+class MsgFisherBid(MsgFisher):
+    def __init__(self, sender_id,  context, time_stamp, mission_receiver_id,receiver_id = None,):
         MsgFisher.__init__(self, sender_id, receiver_id, context, time_stamp)
+        self.mission_receiver_id = mission_receiver_id
 
 
-class MsgAllocation(MsgFisher):
-    def __init__(self, sender_id, receiver_id, context, time_stamp):
+# From mission to agent
+class MsgFisherAllocation(MsgFisher):
+    def __init__(self, sender_id, receiver_id, context, time_stamp, mission_sender_id):
         MsgFisher.__init__(self, sender_id, receiver_id, context, time_stamp)
+        self.mission_sender_id = mission_sender_id
+
+
+

@@ -1,6 +1,6 @@
 from abc import ABC
 
-from msgs import Msg
+from msgs import Msg, MsgFisherBid
 
 
 class Data(object):
@@ -34,7 +34,7 @@ class MailerDistributed(Mailer):
 
     def create_agent_host_missions_map(self):
         for agent in self.agents:
-            self.agent_host_missions_map[agent] = agent.taskResponsibility
+            self.agent_host_missions_map[agent] = agent.mission_responsibility
 
     # 1. initiate the simulator
     def execute(self):
@@ -179,5 +179,29 @@ class MailerFisher(MailerDistributed):
         agent.initialize_fisher(self.threshold)
 
     # 1.3.2.1 called from reaction_to_algorithmic_msgs, abs method, agent's computation due to new information
-    def compute(self, agent)
+    #def compute(self, agent)
+
+    # 1.3.2.2 called from reaction_to_algorithmic_msgs, abs method, agent's send msg after computation
+    #def send_msgs(self, agent)
+
+    # 1.4 called from execute,abs method, check if algorithm converges
+    #def is_terminated(self)
+
+    # 1.6.2.1 called from an_agent_receive_msgs, abs method, agent current time stamp already in context from agent
+    def agent_receive_a_single_msg(self, receiver_agent, msg):
+
+        if isinstance(msg, MsgFisherBid):
+            receiver_id = get_reciever
+            for  key, value in self.agent_host_missions_map.items():
+                agent = key
+                missions = value
+                for mission in missions:
+                    if mission.mission_id == msg.mission_receiver_id:
+                        agent.agent_id
+            msg.receiver_id
+
+    # 1.6.3 an_agent_receive_msgs, abs method, get time stamp from relevant context
+    #def get_current_time_stamp(self, receiver_agent, msg)
+
+
 
