@@ -30,4 +30,7 @@ class MsgFisherAllocation(MsgFisher):
         self.mission_sender_id = mission_sender_id
 
 
-
+class MsgFisherMissionConverge(MsgFisher):
+    def __init__(self, sender_id, receiver_id, context, time_stamp, mission_sender_id):
+        MsgFisher.__init__(self, sender_id, receiver_id, context, time_stamp)
+        self.mission_sender_id = mission_sender_id

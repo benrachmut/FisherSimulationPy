@@ -9,7 +9,7 @@ ans["b"]=2
 ans["c"]=3
 
 print("sum "+ str(sum(ans.values()*ans.values())))
-for key, value in ans.items():
+for key, value in ans.keys()
     print(key)
     print(value)
 

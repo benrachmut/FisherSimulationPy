@@ -1,57 +1,53 @@
 from communication import CreatorDelaysEl
-from mailers import MailerFisher
 from problem_entities import Problem_Distributed
 
-'''
-market parameters:
-std_util = std for normal random r_ij
-mu_util = mean for normal random r_ij
 
-buyers_num= number of buyers in the market
-goods_num =  number of goods in the market
-portion_extra_desire = out of goods number how many are extra desired 
-factor_extra_desire = shift in mu for extra desired goods
-
-
-mailer parameters:
-start= the first id of market, end= the last id of market --> end-start = number of repetitions
-termination= number of iterations to termination
-type_communication= 1 is the requested, add more in the future in script communication
-
-'''
 
 
 def get_parameters( agents_num=14, missions_num=14, start=0, end=100, termination=1000, type_communication=1, algorithm =1,
-                    threshold = 0.00001, std_util=150, mu_util=500, portion_extra_desire=0.3, factor_mu_extra_desire=200,is_random_util = True ):
+                    threshold = 0.00001, std_util=150, mu_util=500, portion_extra_desire=0.3, factor_mu_extra_desire=200,is_random_input = True ):
+    random_params={'extra_desire_num': portion_extra_desire * missions_num}
+    if is_random_input:
+        if algorithm == 1:
+            random_params['mu_util']=mu_util
+            random_params['mu_util_extra_desire']=mu_util * factor_mu_extra_desire
+            random_params['std_util']=std_util
+    else:
+        random_params = None
+
+    algorithm_params = {}
+    if algorithm == 1:
+        algorithm_params = {'threshold': threshold}
+
+    problem = {'algorithm': algorithm,'random_params':random_params,
+               'agents_num': agents_num, 'missions_num': missions_num,
+               'start': start, 'end': end, 'algorithm_params':algorithm_params}
+
+    if type_communication == 1:
+        creator_delay = CreatorDelaysEl()
+
     #creator_delay = None
     if type_communication == 1:
         creator_delay = CreatorDelaysEl()
 
-    protocols = creator_delay.create_protocol_delay()
+    protocols = creator_delay
 
-    mailer_params = {'protocol header':creator_delay.header(), 'termination': termination,'algorithm': algorithm}
+    mailer_params = {'termination': termination, 'is_random_input':is_random_input}
 
-
-    fisher_utils_params = {'mu_util': mu_util, 'mu_util_extra_desire': mu_util * factor_mu_extra_desire,
-                       'std_util': std_util}
-
-    fisher_params = {'is_random_util':is_random_util,'threshold': threshold}
-
-    algorithm_params = {1: fisher_params}
-
-
-    problem = {'is_random_util':is_random_util,'random_utils_parameters':fisher_utils_params,'agents_num': agents_num, 'missions_num': missions_num, 'start': start, 'end': end, 'extra_desire_num': portion_extra_desire * missions_num}
-
-    return mailer_params, algorithm_params, problem, protocols
+    return problem
 
 def create_problems(problem_p):
-    # parameters for simulation
+    algorithm = problem_p['algorithm']
+    random_params = problem_p['random_params']
+    agents_num = problem_p['agents_num']
+    missions_num = problem_p['missions_num']
     start = problem_p['start']
     end = problem_p['end']
+    algorithm_params = problem_p['algorithm_params']
+    # parameters for simulation
     ans = []
     for i in range(start, end):
-        problem_i = Problem_Distributed(prob_id=i, agents_num=problem_p['agents_num'], missions_num=problem_p['missions_num'],extra_desire = problem_p['extra_desire_num'],
-                                        is_random_util= problem_p['is_random_util'],fisher_utils_params = problem_p['random_utils_parameters'] )
+        problem_i = Problem_Distributed(prob_id=i,  algorithm = algorithm, random_params = random_params, agents_num = agents_num, missions_num = missions_num, algorithm_params =algorithm_params)
         ans.append(problem_i)
     return ans
 
@@ -81,8 +77,8 @@ def solve_problem( problems , mailer_params, algorithm_params, protocols):
     return to_avg_map
 
 if __name__ == "__main__":
-    mailer_params, algorithm_params, problem_params, protocols = get_parameters()
-    problems = create_problems(problem_p = problem_params)
+    problem_parameters = get_parameters()
+    problems = create_problems(problem_p = problem_parameters)
     full_data, to_avg_map = solve_problem(problems = problems, mailer_params = mailer_params, algo_params_map = algorithm_params, protocols = protocols)
 
 
