@@ -5,8 +5,12 @@ from problem_entities import Problem_Distributed
 
 
 def get_parameters( agents_num=14, missions_num=14, start=0, end=100, termination=1000, type_communication=1, algorithm =1,
-                    threshold = 0.00001, std_util=150, mu_util=500, portion_extra_desire=0.3, factor_mu_extra_desire=200,is_random_input = True ):
+                    threshold = 0.00001, std_util=150, mu_util=500, portion_extra_desire=0.3, factor_mu_extra_desire=200,
+                    is_random_input = True, init_option = 1):
     random_params={'extra_desire_num': portion_extra_desire * missions_num}
+
+    # algorithm = 1 -> fisher
+
     if is_random_input:
         if algorithm == 1:
             random_params['mu_util']=mu_util
@@ -17,7 +21,10 @@ def get_parameters( agents_num=14, missions_num=14, start=0, end=100, terminatio
 
     algorithm_params = {}
     if algorithm == 1:
-        algorithm_params = {'threshold': threshold}
+        # init_option = 0 -> if x_ij did was not received treat it as 0,
+        # init_option = 1 -> if x_ij did was not received treat it as 1,
+
+        algorithm_params = {'threshold': threshold, "init_option":init_option}
 
     problem = {'algorithm': algorithm,'random_params':random_params,
                'agents_num': agents_num, 'missions_num': missions_num,

@@ -1,15 +1,12 @@
-from msgs import MsgAllocation, MsgFisher, Msg
+from msgs import Msg
 
-print(isinstance(MsgAllocation(sender_id = 3, receiver_id=4, context=5, time_stamp=2), MsgFisher))
-l = list(range(10))
-print(l)
 ans = {}
 ans["a"]=1
 ans["b"]=2
 ans["c"]=3
 
-print("sum "+ str(sum(ans.values()*ans.values())))
-for key, value in ans.keys()
+print("is a in ans "+str("n" in ans))
+for key, value in ans.items():
     print(key)
     print(value)
 

@@ -29,6 +29,17 @@ class Mailer(object):
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
 
+    def execute(self):
+        for agent in self.agents:
+            agent.meet_mailer(self)
+        self.prepare_fields()
+        self.execute_specific()
+
+    def execute_specific(self):
+        raise NotImplementedError()
+
+
+
     def create_agent_host_missions_map(self):
         for agent in self.agents:
             self.agent_host_missions_map[agent] = agent.mission_responsibility
@@ -60,7 +71,9 @@ class Mailer(object):
 
     def is_terminated(self):  # abs method, is algorithm self terminated before max termination
         for agent in self.agents:
-            agent.is_terminated()
+            if not agent.is_terminated():
+                return False
+        return True
 
     # 1.6 called by execute, organize the messages in a map. the key is the receiver and the values are the msgs received
     def agents_receive_msgs(self, msgs_to_send):
@@ -110,8 +123,8 @@ class MailerIterations(Mailer):
 
     # ---------
     # 1. initiate the simulator
-    def execute(self):
-        self.prepare_fields()
+    def execute_specific(self):
+
         for iteration in range(1, self.termination):
             self.agents_react_to_msgs(iteration)
             self.create_data(iteration)
