@@ -5,6 +5,7 @@ ans["a"]=1
 ans["b"]=2
 ans["c"]=3
 
+print(str(abs(-3)))
 print("is a in ans "+str("n" in ans))
 for key, value in ans.items():
     print(key)

@@ -6,14 +6,22 @@ from msgs import MsgFisherBid, MsgFisherAllocation, MsgFisherMissionConverge
 
 class Mission(object):
     def __init__(self, mission_id, extra_desire=False):
-        self.threshold = 0
         self.mission_id = mission_id
         self.extra_desire = extra_desire
         self.assigned_agent = None
+       # fisher
         self.message_bids_received = {}  # msg from mission to agent
+        self.allocation_placed_for_agents = {}
+        self.termination_flag = False
+        self.price = 0
+        self.threshold = 0
+
 
     def reset(self):
         self.message_bids_received = {}  # msg from mission to agent
+        self.allocation_placed_for_agents = {}
+        self.price = 0
+        self.termination_flag = False
 
     def set_assigned_agent(self, agent):
         self.assigned_agent = agent
@@ -23,6 +31,19 @@ class Mission(object):
 
     def receive_a_single_msg_bid(self, msg):
         self.message_bids_received[msg.sender_id] = msg.context
+
+    def compute_fisher(self):
+        price_t_minus1 = self.price
+        self.calculate_price()
+        if abs(price_t_minus1 - self.price) <= self.threshold:
+            self.termination_flag = True
+        for key, bid in self.message_bids_received.items():
+            self.allocation_placed_for_agents[key] = bid/self.price
+
+    def calculate_price(self):
+        self.price = 0
+        for bid in self.message_bids_received.values():
+            self.price = self.price + bid
 
 
 class Agent(object):
@@ -104,7 +125,7 @@ class AgentFisher(Agent):
         self.reset_flag_bids_receive_map()
         self.flag_allocation_receive = False
 
-        self.msgs_from_hosted_missions = []
+        # self.msgs_from_hosted_missions = []
         self.threshold = threshold
         self.reset_mission_threshold(self.threshold)
         self.bid_placed_for_missions = {}
@@ -131,7 +152,7 @@ class AgentFisher(Agent):
     def reset_specific(self):
         self.x_i = {}  # msg from mission to agent
         self.message_x_i_received = {}  # msg from mission to agent
-        self.msgs_from_hosted_missions = []
+        # self.msgs_from_hosted_missions = []
         for mission_id in self.r_i.keys():
             self.x_i[mission_id] = self.init_option
 
@@ -206,6 +227,7 @@ class AgentFisher(Agent):
         if self.flag_allocation_receive:
             self.compute_fisher()
             self.flag_allocation_receive = False
+            self.flag_bids_to_send = True
 
         for key, value in self.flag_bids_receive_map.items():
             mission = key
@@ -213,6 +235,7 @@ class AgentFisher(Agent):
             if flag:
                 mission.compute_fisher()
                 self.flag_bids_receive_map[mission] = False
+                self.flag_allocation_to_send_map[mission] = True
 
     def compute_fisher(self):
         rx_i = 0
@@ -222,8 +245,6 @@ class AgentFisher(Agent):
         for mission_id in self.r_i.keys():
             rx_ij = self.r_i * self.x_i.get(mission_id)
             self.bid_placed_for_missions[mission_id] = rx_ij / denominator
-        self.flag_bids_to_send = True
-
 
 
 class Problem(object):
