@@ -1,5 +1,11 @@
 from msgs import Msg
 
+
+ans = []
+ans.append(1)
+print(str(1 in ans))
+
+
 ans = {}
 ans["a"]=1
 ans["b"]=2
