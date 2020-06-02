@@ -158,7 +158,7 @@ class CreatorDelaysEl(CreatorDelays):
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
-        self.sigma = sigmas
+        self.sigmas = sigmas
 
     def create_default_protocol(self):
         return ProtocolDelayEl()
@@ -170,6 +170,7 @@ class CreatorDelaysEl(CreatorDelays):
                 ans.append(
                     ProtocolDelayEl(time_stamp, gamma, mu_min, sigma, self.n1, self.n2, self.n3, self.n4, self.p1,
                                     self.p2, self.p3))
+        return ans
 
     @staticmethod
     def header():

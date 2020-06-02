@@ -153,7 +153,7 @@ class AgentFisher(Agent):
         extra_desire_counter = self.problem_id * 100 + self.agent_id * 1000
         standard_desire_counter = self.problem_id * 89 + self.agent_id * 74
         for i in range(len(missions)):
-            mission = self.missions[i]
+            mission = missions[i]
             is_mission_extra_desired = mission.extra_desire
             if is_mission_extra_desired:
                 extra_desire_counter = extra_desire_counter + 78
@@ -200,13 +200,10 @@ class AgentFisher(Agent):
 
     # initialize
     def initialize(self):
-        rx_i = 0
-        for mission_id in self.r_i.keys():
-            rx_i = rx_i + self.r_i.get(mission_id) * 1
-        denominator = sum(rx_i)
-        for mission_id in self.r_i.keys():
-            rx_ij = self.r_i * 1
-            self.bid_placed_for_missions[mission_id] = rx_ij / denominator
+        denominator = sum(self.r_i.values())
+        for mission_id, util in self.r_i.items():
+            self.bid_placed_for_missions[mission_id] = util / denominator
+        print("money agent"+str(self.))
         self.flag_bids_to_send = True
 
     # creates utilities to all missions in list from simulator
@@ -259,12 +256,11 @@ class AgentFisher(Agent):
 
 
     def compute_fisher(self):
-        rx_i = 0
+        denominator = 0
         for mission_id in self.r_i.keys():
-            rx_i = rx_i + self.r_i.get(mission_id) * self.x_i.get(mission_id)
-        denominator = sum(rx_i)
+            denominator = denominator + self.r_i.get(mission_id) * self.x_i.get(mission_id)
         for mission_id in self.r_i.keys():
-            rx_ij = self.r_i * self.x_i.get(mission_id)
+            rx_ij = self.r_i.get(mission_id) * self.x_i.get(mission_id)
             self.bid_placed_for_missions[mission_id] = rx_ij / denominator
 
     def send_msgs(self):
@@ -280,7 +276,6 @@ class AgentFisher(Agent):
 
 
 class Problem(object):
-
     def __init__(self, prob_id, algorithm, random_params, agents_num, missions_num, algorithm_params):
 
         self.prob_id = prob_id
@@ -290,18 +285,18 @@ class Problem(object):
             self.extra_desire_num = random_params['extra_desire_num']
         # generate entities
         self.missions = []
-        self.create_missions(missions_num=missions_num, agents_num=agents_num)
+        self.create_missions(missions_num=missions_num)
         self.agents = []
         self.create_agents(agents_num=agents_num, algorithm=algorithm, algorithm_params=algorithm_params)
 
         if random_params is not None:
             for agent in self.agents:
-                agent.create_missions_random_utils(util_parameters=random_params)
+                agent.create_missions_random_utils(util_parameters=random_params, missions = self.missions)
 
-    def create_missions(self, missions_num, agents_num):
+    def create_missions(self, missions_num):
         counter_extra_desire = self.extra_desire_num
         for i in range(missions_num):
-            if counter_extra_desire == 0:
+            if counter_extra_desire < 0:
                 mission = Mission(mission_id=i, extra_desire=False)
             else:
                 counter_extra_desire = counter_extra_desire - 1

@@ -1,7 +1,6 @@
 from abc import ABC
 
-from msgs import Msg, MsgFisherBid
-from problem_entities import AgentDistributed
+from msgs import Msg
 
 
 class Data(object):
@@ -17,7 +16,8 @@ class Data(object):
 
 
 class Mailer(object):
-    def __init__(self, agents, missions, delay_protocol, termination, is_random):
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random):
+        self.problem_id = problem_id
         self.termination = termination
         self.agents = agents
         self.missions = missions
@@ -59,11 +59,9 @@ class Mailer(object):
         for mission in self.missions:
             mission.reset()
 
-        if isinstance(self.agents[0], AgentDistributed):
-            self.agent_host_missions_map = {}
-            self.create_agent_host_missions_map()
-
-        self.delay.set_seed()
+        self.agent_host_missions_map = {}
+        self.create_agent_host_missions_map()
+        self.delay.set_seed(self.problem_id)
 
     # 1.2 called from execute,abs method, create data relevant to algorithm type
     def create_data(self, time):
@@ -118,14 +116,14 @@ class Mailer(object):
 # ------------
 
 class MailerIterations(Mailer):
-    def __init__(self, agents, missions, delay_protocol, termination, is_random):
-        Mailer.__init__(self, agents, missions, delay_protocol, termination, is_random)
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random):
+        Mailer.__init__(self, problem_id, agents, missions, delay_protocol, termination, is_random)
 
     # ---------
     # 1. initiate the simulator
     def execute_specific(self):
 
-        for iteration in range(1, self.termination):
+        for iteration in range(0, self.termination):
             self.agents_react_to_msgs(iteration)
             self.create_data(iteration)
             if self.is_terminated():
