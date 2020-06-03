@@ -41,8 +41,8 @@ def get_params_problem(algorithm, random_params, agents_num, missions_num, start
     return ans
 
 
-def get_params_mailer(termination=1000, is_random=True, is_mailer_thread=False):
-    ans = {'termination': termination, 'is_random': is_random, 'is_mailer_thread': is_mailer_thread}
+def get_params_mailer(termination=1000, is_random=True, is_mailer_thread=False, include_data = True):
+    ans = {'termination': termination, 'is_random': is_random, 'is_mailer_thread': is_mailer_thread, 'include_data':include_data}
     return ans
 
 
@@ -85,22 +85,26 @@ def create_mailer(problem, delay_protocol, mailer_parameters):
     agents = problem.agents
     missions = problem.missions
     problem_id = problem.prob_id
+    is_include_data = mailer_parameters['include_data']
+
 
     if is_mailer_thread:
         print("to do mailer thread")
     else:
         return MailerIterations(problem_id = problem_id,agents=agents, missions=missions, delay_protocol=delay_protocol,
-                                termination=termination, is_random=is_random)
+                                termination=termination, is_random=is_random, is_include_data = is_include_data)
 
 
 def solve_problems(problems_input, protocols_input, mailer_params):
+    is_include_data = mailer_params['include_data']
     problems_solved_per_protocol = {}
     for protocol in protocols_input:
         mailers_with_same_delay_protocol = []
         for problem in problems_input:
             mailer = create_mailer(problem=problem, delay_protocol=protocol, mailer_parameters=mailer_params)
             mailer.execute()
-            mailers_with_same_delay_protocol.append(mailer.data_map())
+            if is_include_data:
+                mailers_with_same_delay_protocol.append(mailer.data_map())
         problems_solved_per_protocol[protocol] = mailers_with_same_delay_protocol
     return problems_solved_per_protocol
 
@@ -124,9 +128,11 @@ if __name__ == "__main__":
     start_input = 0
     end_input = 2
 
-    #
+    # params_mailer input from user
     termination_input = 1000
     is_mailer_thread_input = False
+    include_data_input = True
+
     # -----------SET VARIABLES-------------
     type_communication_input = 1
 
@@ -144,7 +150,7 @@ if __name__ == "__main__":
                                         algorithm_params=params_algorithm)
 
     params_mailer = get_params_mailer(termination=termination_input, is_mailer_thread=is_mailer_thread_input,
-                                      is_random=is_random_input)
+                                      is_random=is_random_input, include_data = include_data_input)
 
     protocols, protocols_header = get_protocols(type_communication=type_communication_input)
 

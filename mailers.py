@@ -3,20 +3,43 @@ from abc import ABC
 from msgs import Msg
 
 
-class Data(object):
+class DataPerIteration(object):
     def __init__(self, iteration, agents, missions):
         self.iteration = iteration
-        self.sum_rx = calc_sum_rx(agents, missions)
-        self.is_envy_free = calc_is_envy_free(agents, missions)
-        self.envy_free_score = 0
-        if self.is_envy_free == 0:
-            self.envy_free_score = calc_envy_free_score(agents, missions)
-        self.is_full_iteration = calc_is_full_iteration(agents)
-        self.is_end_phase_one(agents)
+        self.agents = agents
+        self.missions = missions
+
+        self.sum_rx_bird_eye = self.calc_sum_rx_bird_eye()
+        print(3)
+        # self.sum_rx_agent_view = calc_sum_rx_agent_view(agents)
+        # self.is_envy_free = calc_is_envy_free(agents, missions)
+        # self.envy_free_score = 0
+        # if self.is_envy_free == 0:
+        #    self.envy_free_score = calc_envy_free_score(agents, missions)
+        # self.is_full_iteration = calc_is_full_iteration(agents)
+        # self.is_end_phase_one(agents)
+
+    def calc_sum_rx_bird_eye(self):
+        ans = 0
+        for agent in self.agents:
+            agent_id = agent.agent_id
+            r_i = agent.r_i
+            for mission_id, r_ij in r_i.items():
+                mission = self.get_mission_given_id(mission_id)
+                x_ij = mission.allocation_placed_for_agents.get(agent_id)
+                ans = ans + x_ij * r_ij
+        return ans
+
+    def get_mission_given_id(self, mission_id):
+        for mission in self.missions:
+            if mission.mission_id == mission_id:
+                return mission
+        print("in data cannot find mission id")
 
 
 class Mailer(object):
-    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random):
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random, is_include_data):
+        self.is_include_data = is_include_data
         self.problem_id = problem_id
         self.termination = termination
         self.agents = agents
@@ -38,8 +61,6 @@ class Mailer(object):
     def execute_specific(self):
         raise NotImplementedError()
 
-
-
     def create_agent_host_missions_map(self):
         for agent in self.agents:
             self.agent_host_missions_map[agent] = agent.mission_responsibility
@@ -59,13 +80,17 @@ class Mailer(object):
         for mission in self.missions:
             mission.reset()
 
+
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
+        for agent in self.agents:
+            agent.inform_agent_host_missions_map()
         self.delay.set_seed(self.problem_id)
 
     # 1.2 called from execute,abs method, create data relevant to algorithm type
+
     def create_data(self, time):
-        self.results[time] = Data()
+        self.results[time] = DataPerIteration(iteration=time, agents=self.agents, missions=self.missions)
 
     def is_terminated(self):  # abs method, is algorithm self terminated before max termination
         for agent in self.agents:
@@ -107,25 +132,26 @@ class Mailer(object):
             if not self.delay.is_time_stamp:
                 self.agent_receive_a_single_msg(receiver_agent=receiver_agent, msg=msg)
             else:
-                time_stamp_held_by_agent = self.get_current_time_stamp(receiver_agent=receiver_agent, msg=msg)
+                time_stamp_held_by_agent = receiver_agent.get_current_time_stamp(msg)
                 time_stamp_of_msg_to_be_sent = msg.time_stamp
                 if time_stamp_held_by_agent < time_stamp_of_msg_to_be_sent:
                     receiver_agent.agent_receive_a_single_msg(msg=msg)
 
 
+
 # ------------
 
 class MailerIterations(Mailer):
-    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random):
-        Mailer.__init__(self, problem_id, agents, missions, delay_protocol, termination, is_random)
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, is_random, is_include_data):
+        Mailer.__init__(self, problem_id, agents, missions, delay_protocol, termination, is_random, is_include_data)
 
     # ---------
     # 1. initiate the simulator
     def execute_specific(self):
-
-        for iteration in range(0, self.termination):
+        for iteration in range(-1, self.termination):
             self.agents_react_to_msgs(iteration)
-            self.create_data(iteration)
+            if self.is_include_data and iteration > -1:
+                self.create_data(iteration)
             if self.is_terminated():
                 break
             msgs_to_send = self.handle_msgs()
@@ -133,7 +159,7 @@ class MailerIterations(Mailer):
 
     def agents_react_to_msgs(self, iteration):
         for agent in self.agents:
-            if iteration == 0:
+            if iteration == -1:
                 agent.initialize()
             else:
                 if agent in self.receives_in_current_iteration():
