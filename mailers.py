@@ -51,6 +51,11 @@ class Mailer(object):
         self.is_random = is_random
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
+# called from agent to send msg
+
+    def send_msg(self, msg):
+        delay = self.delay.create_delay()
+        msg.delay = delay
 
     def execute(self):
         for agent in self.agents:
@@ -63,7 +68,8 @@ class Mailer(object):
 
     def create_agent_host_missions_map(self):
         for agent in self.agents:
-            self.agent_host_missions_map[agent] = agent.mission_responsibility
+            self.agent_host_missions_map[agent] = agent.get_mission_responsibility_ids()
+
 
     # ------
 

@@ -69,6 +69,14 @@ class Mission(object):
             return -1
 
 
+    #called by agent that hosts the mission that updates the bid for the mission
+    def update_bid_directly(self, agent_id, bid):
+        if agent_id != self.assigned_agent.agent_id:
+            print("from update_bid_directly in mission something with assigning agent for mission is wrong")
+        else:
+            self.bids[agent_id] = bid
+
+
 class Agent(object):
     def __init__(self, agent_id, problem_id=None):
         self.problem_id = problem_id
@@ -79,6 +87,13 @@ class Agent(object):
         self.agent_host_missions_map = {}
 
     ###-------------
+
+    # called by mailer to create a map with all resposibilty ids
+    def get_mission_responsibility_ids(self):
+        ans = []
+        for mission in self.mission_responsibility:
+            ans.append(mission.mission_id)
+        return ans
 
     def inform_agent_host_missions_map(self, map_input):
         self.agent_host_missions_map = map_input
@@ -133,12 +148,16 @@ class Agent(object):
     def get_task_responsibility_size(self):
         return len(self.mission_responsibility)
 
-    ###---------
-    # 1.1.1 **prepare_algorithm_input**
-    # *Fisher*
-    # creates random utilities to all missions in list, given if they are more desired, for fisher simulator
 
-    # 1.6.2.1 called from an_agent_receive_msgs, abs method, agent current time stamp already in context from agent
+
+    #called from send_bids where agent wants to send bid for mission it needs to find which agent holds the mission
+    # returns that agent's id
+    def get_receiver_id(self, mission_id):
+        for agent_id, missions_ids in self.agent_host_missions_map.items():
+            for i in missions_ids:
+                if i == mission_id:
+                    return agent_id
+        print("in get get_receiver_id in class agent, cannot find mission id in any of the hosted missions")
 
 
 class AgentFisher(Agent):
@@ -295,18 +314,20 @@ class AgentFisher(Agent):
 
     def send_bids(self):
         for mission_id , bid in self.bid_placed_for_missions.items():
-            flag = False
+            flag_send_bids = False
             for mission in self.mission_responsibility:
                 if mission.mission_id == mission_id:
-                    mission.update_bid_directly(agent_id = self.agent_id, bid = bid) #TODO
-                    flag = True
-
-            if not flag:
+                    mission.update_bid_directly(agent_id = self.agent_id, bid = bid)
+                    flag_send_bids = True
+            if not flag_send_bids:
                 receiver_id = self.get_receiver_id(mission_id = mission_id)
                 msg = MsgFisherBid(sender_id=self.agent_id, context=bid, time_stamp=self.msg_time_stamp, mission_receiver_id= mission_id,receiver_id=receiver_id )
                 self.mailer.send_msg(msg)
             #class MsgFisherBid(MsgFisher):
                 #def __init__(self, sender_id, context, time_stamp, mission_receiver_id, receiver_id=None):
+
+
+
 
 
     def get_current_time_stamp(self, msg):

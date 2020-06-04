@@ -6,6 +6,7 @@ class Msg(object):
         self.time_stamp = time_stamp
         self.delay = None
 
+
     @staticmethod
     def comparator_by_msg_delay(msg):
         return msg.delay

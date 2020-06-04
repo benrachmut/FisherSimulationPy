@@ -24,7 +24,7 @@ class ProtocolDelay(object):
         self.gamma = gamma
         self.gamma_counter = 0
 
-    def create_delay_specific(self, distance_ij):
+    def create_delay_specific(self, distance_ij ):
         raise NotImplementedError()
 
     def create_delay(self, distance_ij=1):
@@ -35,7 +35,7 @@ class ProtocolDelay(object):
         if rnd < self.gamma:
             return None
         else:
-            self.create_delay_specific(distance_ij)
+            self.create_delay_specific(distance_ij = distance_ij)
 
     def set_seed_specific(self, seed):
         raise NotImplementedError()
