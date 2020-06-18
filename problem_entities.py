@@ -36,6 +36,8 @@ class Mission(object):
 
 
     def compute_fisher(self):
+
+        #First round will by synchronous for sure!!!!
         if self.have_bid_zero():
             return False
         else:
@@ -153,10 +155,10 @@ class Agent(object):
     #called from send_bids where agent wants to send bid for mission it needs to find which agent holds the mission
     # returns that agent's id
     def get_receiver_id(self, mission_id):
-        for agent_id, missions_ids in self.agent_host_missions_map.items():
+        for agent, missions_ids in self.agent_host_missions_map.items():
             for i in missions_ids:
                 if i == mission_id:
-                    return agent_id
+                    return agent.agent_id
         print("in get get_receiver_id in class agent, cannot find mission id in any of the hosted missions")
 
 
@@ -183,7 +185,7 @@ class AgentFisher(Agent):
         self.threshold = threshold
         self.reset_mission_threshold(self.threshold)
         self.bid_placed_for_missions = {}
-        self.mission_price_converge = []
+        self.mission_price_converge = {}
 
     # called from problem creator
     def create_missions_random_utils(self, missions, util_parameters):
@@ -219,7 +221,11 @@ class AgentFisher(Agent):
         self.reset_flag_allocation_to_send_map()
         self.reset_flag_bids_receive_map()
         self.is_fisher_phase_I = True
-        self.mission_price_converge = []
+        self.mission_price_converge = {}
+
+        for mission_id in self.r_i.keys():
+            self.mission_price_converge[mission_id] = False
+
         for mission in self.mission_responsibility:
             mission.reset()
 
@@ -242,6 +248,8 @@ class AgentFisher(Agent):
             self.bid_placed_for_missions[mission_id] = util / denominator
         #print("money agent a_"+str(self.agent_id)+" spent is:"+str(sum(self.bid_placed_for_missions.values())))
         self.flag_bids_to_send = True
+        self.send_msgs()
+
 
     # creates utilities to all missions in list from simulator
     def prepare_algorithm_input(self, missions):
@@ -250,8 +258,8 @@ class AgentFisher(Agent):
         raise NotImplementedError()
 
     def agent_receive_a_single_msg(self, msg):
-        mission_id = msg.mission_receiver_id
         if isinstance(msg, MsgFisherBid):
+            mission_id = msg.mission_receiver_id
             mission = self.find_hosted_mission_by_id(mission_id=mission_id)
             mission.receive_a_single_msg_bid(msg)
             self.flag_bids_receive_map[mission] = True
@@ -271,7 +279,7 @@ class AgentFisher(Agent):
 
     def is_terminated(self):
         for mission_id in self.r_i.keys():
-            if mission_id in self.mission_price_converge == False:
+            if self.mission_price_converge[mission_id] == False:
                 return False
         return True
 
@@ -306,11 +314,34 @@ class AgentFisher(Agent):
             self.send_bids()
             self.flag_bids_to_send = False
         for key, value in self.flag_allocation_to_send_map.items():
-            mission_id = key
+            mission = key
             is_flag_allocation_to_send = value
             if is_flag_allocation_to_send:
-                self.send_allocation(mission_id)
+                self.send_allocation(mission)
                 self.flag_allocation_to_send_map[key] = False
+
+
+    def get_hosted_mission(self,mission_id):
+        for mission in self.mission_responsibility:
+            if mission_id == mission.mission_id:
+                return mission
+        print("cannot find hosted mission")
+
+    def send_allocation(self, mission):
+        xj_to_send = mission.allocation_placed_for_agents
+        for agent_id_receiver, x_ij in xj_to_send.items():
+            # check if the self agent is receiver
+            if agent_id_receiver == self.agent_id:
+                self.x_i[mission.mission_id] = x_ij
+                self.flag_allocation_receive = True
+            else:
+                msg = MsgFisherAllocation(sender_id=self.agent_id, receiver_id = agent_id_receiver,  context=x_ij, time_stamp=self.msg_time_stamp,
+                                   mission_sender_id = mission.mission_id)
+                self.mailer.send_msg(msg)
+
+
+
+
 
     def send_bids(self):
         for mission_id , bid in self.bid_placed_for_missions.items():
@@ -318,6 +349,7 @@ class AgentFisher(Agent):
             for mission in self.mission_responsibility:
                 if mission.mission_id == mission_id:
                     mission.update_bid_directly(agent_id = self.agent_id, bid = bid)
+                    self.flag_bids_receive_map[mission] = True
                     flag_send_bids = True
             if not flag_send_bids:
                 receiver_id = self.get_receiver_id(mission_id = mission_id)

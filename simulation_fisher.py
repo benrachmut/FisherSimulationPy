@@ -123,8 +123,8 @@ if __name__ == "__main__":
     init_option_input = 2
 
     # params_problem input from user
-    agents_num_input = 5
-    missions_num_input = 5
+    agents_num_input = 2
+    missions_num_input = 2
     start_input = 0
     end_input = 2
 

@@ -8,9 +8,7 @@ class DataPerIteration(object):
         self.iteration = iteration
         self.agents = agents
         self.missions = missions
-
         self.sum_rx_bird_eye = self.calc_sum_rx_bird_eye()
-        print(3)
         # self.sum_rx_agent_view = calc_sum_rx_agent_view(agents)
         # self.is_envy_free = calc_is_envy_free(agents, missions)
         # self.envy_free_score = 0
@@ -51,11 +49,16 @@ class Mailer(object):
         self.is_random = is_random
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
+        self.delays=[]
 # called from agent to send msg
 
     def send_msg(self, msg):
         delay = self.delay.create_delay()
+        if delay == None or delay<0:
+            delay = 0
+        self.delays.append(delay)
         msg.delay = delay
+        self.msg_box.append(msg)
 
     def execute(self):
         for agent in self.agents:
@@ -90,7 +93,7 @@ class Mailer(object):
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
         for agent in self.agents:
-            agent.inform_agent_host_missions_map()
+            agent.inform_agent_host_missions_map(map_input = self.agent_host_missions_map)
         self.delay.set_seed(self.problem_id)
 
     # 1.2 called from execute,abs method, create data relevant to algorithm type
@@ -136,7 +139,7 @@ class Mailer(object):
     def an_agent_receive_msgs(self, receiver_agent, msgs_per_agent):
         for msg in msgs_per_agent:
             if not self.delay.is_time_stamp:
-                self.agent_receive_a_single_msg(receiver_agent=receiver_agent, msg=msg)
+                receiver_agent.agent_receive_a_single_msg(msg=msg)
             else:
                 time_stamp_held_by_agent = receiver_agent.get_current_time_stamp(msg)
                 time_stamp_of_msg_to_be_sent = msg.time_stamp
@@ -154,22 +157,25 @@ class MailerIterations(Mailer):
     # ---------
     # 1. initiate the simulator
     def execute_specific(self):
+        flag_pass_first = False
         for iteration in range(-1, self.termination):
-            self.agents_react_to_msgs(iteration)
-            if self.is_include_data and iteration > -1:
+            print("----current iteration is", iteration,"----")
+            self.agents_react_to_msgs(flag_pass_first)
+            if self.is_include_data and flag_pass_first:
                 self.create_data(iteration)
             if self.is_terminated():
                 break
             msgs_to_send = self.handle_msgs()
             self.agents_receive_msgs(msgs_to_send)
+            flag_pass_first = True
+        print("finish run")
 
-    def agents_react_to_msgs(self, iteration):
+    def agents_react_to_msgs(self, flag_pass_first):
         for agent in self.agents:
-            if iteration == -1:
+            if not flag_pass_first:
                 agent.initialize()
             else:
-                if agent in self.receives_in_current_iteration():
-                    agent.reaction_to_algorithmic_msgs(agent)
+                agent.reaction_to_algorithmic_msgs()
 
     # 1.5 called by execute, decrease msg delay by 1 and return map by receivers, returns msgs with no delay
     def handle_msgs(self):
@@ -177,11 +183,11 @@ class MailerIterations(Mailer):
         ans = []
         for i in range(len(sorted_msgs)):
             msg = sorted_msgs[i]
-            if msg.delay == 0:
-                ans.append()
+            if msg.delay <= 0:
+                ans.append(msg)
             else:
                 msg.delay = msg.delay - 1
-        self.msg_box = [i for i in self.msg_box if i.delay != 0]
+        self.msg_box = [i for i in self.msg_box if i.delay >= 0]
         return ans
 
     # ---------
