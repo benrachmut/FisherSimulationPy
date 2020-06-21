@@ -175,7 +175,9 @@ class MailerIterations(Mailer):
             if not flag_pass_first:
                 agent.initialize()
             else:
-                agent.reaction_to_algorithmic_msgs()
+                agent.compute()
+            agent.msg_time_stamp = agent.msg_time_stamp + 1
+            agent.send_msgs()
 
     # 1.5 called by execute, decrease msg delay by 1 and return map by receivers, returns msgs with no delay
     def handle_msgs(self):
