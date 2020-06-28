@@ -78,7 +78,7 @@ def create_problems(problem_p):
     return ans
 
 
-def create_mailer(problem, delay_protocol, mailer_parameters):
+def create_mailer(problem, delay_protocol, mailer_parameters, debug_print_problem):
     is_mailer_thread = mailer_parameters['is_mailer_thread']
     termination = mailer_parameters['termination']
     is_random = mailer_parameters['is_random']
@@ -92,16 +92,18 @@ def create_mailer(problem, delay_protocol, mailer_parameters):
         print("to do mailer thread")
     else:
         return MailerIterations(problem_id = problem_id,agents=agents, missions=missions, delay_protocol=delay_protocol,
-                                termination=termination, is_random=is_random, is_include_data = is_include_data)
+                                termination=termination, debug_print_problem = debug_print_problem, is_random=is_random, is_include_data = is_include_data)
 
 
-def solve_problems(problems_input, protocols_input, mailer_params):
+def solve_problems(problems_input, protocols_input, mailer_params, debug_print_problem=False):
     is_include_data = mailer_params['include_data']
     problems_solved_per_protocol = {}
     for protocol in protocols_input:
         mailers_with_same_delay_protocol = []
         for problem in problems_input:
-            mailer = create_mailer(problem=problem, delay_protocol=protocol, mailer_parameters=mailer_params)
+            if debug_print_problem:
+                problem.print_input()
+            mailer = create_mailer(problem=problem, delay_protocol=protocol, mailer_parameters=mailer_params, debug_print_problem = debug_print_problem)
             mailer.execute()
             if is_include_data:
                 mailers_with_same_delay_protocol.append(mailer.data_map())
@@ -136,6 +138,9 @@ if __name__ == "__main__":
     # -----------SET VARIABLES-------------
     type_communication_input = 1
 
+    # -----------FOR DEBUG-----------------
+    debug_print_problem = True
+
     params_random = get_params_random(portion_extra_desire=portion_extra_desire_input, missions_num=missions_num_input,
                                       is_random_input=is_random_input,
                                       algorithm=algorithm_input, mu_util=mu_util_input,
@@ -157,4 +162,4 @@ if __name__ == "__main__":
     # -----------RUN SIMULATION-------------
 
     problems = create_problems(problem_p=params_problem)
-    full_data, to_avg_map = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer)
+    full_data, to_avg_map = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )

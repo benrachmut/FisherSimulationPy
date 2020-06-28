@@ -1,17 +1,30 @@
 from msgs import Msg
-
+from problem_entities import Mission
 
 ans = []
 ans.append(1)
 print(str(1 in ans))
 
+ans1= []
+ans1.append(Mission(1))
+ans1.append(Mission(5))
+ans1.append(Mission(0))
+ans1.append(Mission(2))
+print(ans1)
+ans1 = sorted(ans1, key= Mission.comparator_by_id)
+print(ans1)
 
+print("-----------")
 ans = {}
 ans["a"]=1
 ans["b"]=2
 ans["c"]=3
+print(len(ans))
+#print(str(abs(-3)))
 
-print(str(abs(-3)))
+sorted_msgs = sorted(msgs, key=Msg.comparator_by_msg_delay)
+
+
 print("is a in ans "+str("n" in ans))
 for key, value in ans.items():
     print(key)
