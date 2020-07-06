@@ -147,7 +147,7 @@ class CreatorDelays(object):
 
 
 class CreatorDelaysEl(CreatorDelays):
-    def __init__(self, perfect_communications=[True, False], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
+    def __init__(self, perfect_communications=[True], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
                  sigmas=[10], n1=0, n2=0, n3=0, n4=0, p1=1, p2=0, p3=0):
         CreatorDelays.__init__(self, perfect_communications, is_time_stamps, gammas)
         self.mu_mins = mu_mins

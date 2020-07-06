@@ -1,37 +1,113 @@
 from abc import ABC
+from numpy import mean
 
 from msgs import Msg
 from problem_entities import Agent
 
 
 class DataPerIteration(object):
-    def __init__(self, iteration, agents, missions, previous_data):
+    def __init__(self, iteration, agents, missions, previous_data=None):
         self.iteration = iteration
         self.agents = agents
         self.missions = missions
 
-        self.rx_bird_eye_matrix, self.rx_bird_eye_sum, self.x_matrix, self.bids, self.r_matrix, rx_per_agent_map = self.create_rx_bird_eye()
-        self.rx_agent_view_sum, self.rx_agent_view_sum = self.create_rx_agent_view()
-        self.envy_score_birdeye_matrix, self.envy_birdeye_score, self.util_if_change_birdeye_matrix= self.create_envy_score()
+        self.rx_bird_eye_matrix, self.rx_bird_eye_sum, self.x_matrix, self.bids_mission_pov, self.r_matrix, self.rx_per_agent_map = self.create_rx_bird_eye()
+        self.rx_agent_view_sum, self.rx_agent_view_sum, self.bids_agents_pov = self.create_rx_agent_view()
+        self.util_if_change_bird_eye_matrix, self.envy_bird_eye_max, self.envy_score_bird_eye_matrix = self.create_envy_score()
 
+        self.price_map = self.get_prices()
+        if iteration > 0:
+            self.mono_per_agent_rx_weakly, self.mono_global_rx_weakly = self.check_mono(previous_data=previous_data,
+                                                                            weakly=True)
+            self.delta_abs_price_per_mission,self.delta_abs_price,self.delta_non_abs_price_per_mission,self.delta_non_abs_price = self.get_delta_price(previous_data)
 
-        # self.is_envy_free = calc_is_envy_free(agents, missions)
-        # self.envy_free_score = 0
-        # if self.is_envy_free == 0:
-        #    self.envy_free_score = calc_envy_free_score(agents, missions)
-        # self.is_full_iteration = calc_is_full_iteration(agents)
-        # self.is_end_phase_one(agents)
+    def get_delta_price(self, previous_data):
+        previous_price_map = previous_data.price_map
+        delta_map_abs = {}
+        delta_map_non_abs = {}
+        for mission_id, previous_price in previous_price_map.items():
+            delta_map_non_abs[mission_id] = previous_price - self.price_map[mission_id]
+            delta_map_abs[mission_id] = abs(previous_price - self.price_map[mission_id])
+        return delta_map_abs, sum(delta_map_abs.values()),delta_map_non_abs,sum(delta_map_non_abs.values())
+
+    def check_mono(self, previous_data, weakly):
+        previous_rx_per_agent = previous_data.rx_per_agent_map
+        mono_per_agent = {}
+        for agent_id, previous_rx_i in previous_rx_per_agent.items():
+            current_rx_i = self.rx_per_agent_map[agent_id]
+            if weakly:
+                if current_rx_i >= previous_rx_i:
+                    monotonic_score_per_agent = 1
+                else:
+                    monotonic_score_per_agent = 0
+            else:
+                if current_rx_i > previous_rx_i:
+                    monotonic_score_per_agent = 1
+                else:
+                    monotonic_score_per_agent = 0
+
+            mono_per_agent[agent_id] = monotonic_score_per_agent
+
+        vvv=[]
+        for v in mono_per_agent.values():
+            vvv.append(v)
+        is_overall_mono = mean(vvv)
+        if is_overall_mono == 1:
+            overall_mono = 1
+        else:
+            overall_mono = 0
+        return mono_per_agent, overall_mono
+
+    def get_prices(self):
+        ans = {}
+        for mission in self.missions:
+            ans[mission.mission_id] = mission.price
+        return ans
 
     def create_envy_score(self):
-        matrix_envy_score = []
-        matrix_sum = 0
-        util_if_can_change = []
+        util_if_can_change = self.get_util_if_can_change()
+        envy_score, envy_matrix = self.get_matrix_envy_score(util_if_can_change)
+        return util_if_can_change, envy_score, envy_matrix
+
+    def get_matrix_envy_score(self, input_m):
+        ans = []
+        max_vector = []
+        for i in range(len(input_m)):
+            i_vector = input_m[i]
+            i_util = i_vector[i]
+            i_envy_score = []
+            for j in range(len(input_m)):
+                j_util = i_vector[j]
+                util = 0
+                if i_util < j_util:
+                    util = j_util - i_util
+                i_envy_score.append(util)
+            max_vector.append(max(i_envy_score))
+            ans.append(i_envy_score)
+
+        score = max(max_vector)
+        return score, ans
+
+    def get_util_if_can_change(self):
+        ans = []
         for i in range(len(self.agents)):
             agent_i = self.get_agent_given_id(i)
-            r_i = agent_i.get_r_i_as_list()
+            r_i = agent_i.r_i
+            util_if_can_change_agent_i = []
             for k in range(len(self.agents)):
-                agent_k = self.get_agent_given_id(j)
-                x_k = self.get_birdeye_x_per_agent
+                x_k = self.get_bird_eye_x_per_agent(k)
+                temp_util = 0
+                for mission_id, r_ij in r_i.items():
+                    temp_util = temp_util + r_ij * x_k[mission_id]
+                util_if_can_change_agent_i.append(temp_util)
+            ans.append(util_if_can_change_agent_i)
+        return ans
+
+    def get_bird_eye_x_per_agent(self, k):
+        ans = {}
+        for mission in self.missions:
+            ans[mission.mission_id] = mission.allocation_placed_for_agents[k]
+        return ans
 
     def get_agent_given_id(self, i):
         for agent in self.agents:
@@ -42,17 +118,25 @@ class DataPerIteration(object):
     def create_rx_agent_view(self):
         matrix_sum = 0
         matrix = []
+        bids_agents_pov = []
         for agent in self.agents:
             rx_i = []
             agent_id = agent.agent_id
-            r_i = agent.r_i
-            for mission_id, x_ij_agent_view in agent.x_i:
+            bids_per_agent = []
+
+            for mission_id, bid in agent.bid_placed_for_missions.items():
+                bids_per_agent.append(agent.bid_placed_for_missions[mission_id])
+            bids_agents_pov.append(bids_per_agent)
+
+            for mission_id, x_ij_agent_view in agent.x_i.items():
                 mission = self.get_mission_given_id(mission_id)
                 x_ij = mission.allocation_placed_for_agents.get(agent_id)
                 r_ij = agent.r_i[mission_id]
                 matrix_sum = matrix_sum + x_ij * r_ij
                 rx_i.append(x_ij * r_ij)
-            return matrix, matrix_sum
+                agent.bid_placed_for_missions[mission_id]
+
+        return matrix, matrix_sum,bids_agents_pov
 
     def create_rx_bird_eye(self):
         r_global = []
@@ -74,10 +158,10 @@ class DataPerIteration(object):
             for mission_id, r_ij in r_i.items():
                 mission = self.get_mission_given_id(mission_id)
                 x_ij = mission.allocation_placed_for_agents.get(agent_id)
-                bid_ij =  mission[agent_id]
+                bid_ij = mission.bids[agent_id]
                 r_i_list.append(r_ij)
                 matrix_sum = matrix_sum + x_ij * r_ij
-                sum_per_agent=sum_per_agent+x_ij * r_ij
+                sum_per_agent = sum_per_agent + x_ij * r_ij
                 rx_i.append(x_ij * r_ij)
                 x_i.append(x_ij)
                 bids_i.append(bid_ij)
@@ -87,7 +171,6 @@ class DataPerIteration(object):
             bids.append(bids_i)
             matrix.append(rx_i)
             x_global.append(x_i)
-
 
         return matrix, matrix_sum, x_global, bids, r_global, rx_per_agent_map
 
@@ -101,7 +184,8 @@ class DataPerIteration(object):
 
 
 class Mailer(object):
-    def __init__(self, problem_id, agents, missions, delay_protocol, termination,debug_print_problem, is_random, is_include_data):
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, debug_print_problem, is_random,
+                 is_include_data):
         self.is_include_data = is_include_data
         self.problem_id = problem_id
         self.termination = termination
@@ -114,10 +198,10 @@ class Mailer(object):
         self.is_random = is_random
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
-        self.delays=[]
+        self.delays = []
         self.debug_print_problem = debug_print_problem
-# called from agent to send msg
 
+    # called from agent to send msg
 
     def send_msg_no_delay(self, msg):
         msg.delay = 0
@@ -125,7 +209,7 @@ class Mailer(object):
 
     def send_msg(self, msg):
         delay = self.delay.create_delay()
-        if delay == None or delay<0:
+        if delay is None or delay < 0:
             delay = 0
         self.delays.append(delay)
         msg.delay = delay
@@ -144,7 +228,6 @@ class Mailer(object):
         for agent in self.agents:
             self.agent_host_missions_map[agent] = agent.get_mission_responsibility_ids()
 
-
     # ------
 
     # 1.1 called by execute, actions prior to algorithm simulator
@@ -160,29 +243,61 @@ class Mailer(object):
         for mission in self.missions:
             mission.reset()
 
-
         self.agent_host_missions_map = {}
         self.create_agent_host_missions_map()
         for agent in self.agents:
-            agent.inform_agent_host_missions_map(map_input = self.agent_host_missions_map)
+            agent.inform_agent_host_missions_map(map_input=self.agent_host_missions_map)
         self.delay.set_seed(self.problem_id)
 
     # 1.2 called from execute,abs method, create data relevant to algorithm type
+    def create_data(self, time, debug_print_problem, previous_data):
+        data = DataPerIteration(iteration=time, agents=self.agents, missions=self.missions, previous_data = previous_data)
 
-    def create_data(self, time, debug_print_problem):
-        dataaa = DataPerIteration(iteration=time, agents=self.agents, missions=self.missions,debug_print_problem = debug_print_problem)
+        if time >= 1:
+            self.results[time] = data
 
-        if time>=0:
-            self.results[time] = dataaa
+        if debug_print_problem:
+            print()
+            print("--------------------iteration:",time-1,"--------------------")
+            print()
+            if time%2 == 0:
+                print("bids agent pov matrix:")
+                self.print_2D(data.bids_agents_pov)
+                print()
+                if time > 0:
+                    print("delta abs price:")
+                    print(data.delta_abs_price)
+                    print()
+                    print("delta non_abs price:")
+                    print(data.delta_non_abs_price)
+                    print()
+            else:
+                print("X matrix:")
+                self.print_2D(data.x_matrix)
+                print()
+                print("RX bird eye matrix:")
+                self.print_2D(data.rx_bird_eye_matrix)
+                print()
+                print("RX sum:")
+                print(data.rx_bird_eye_sum)
+                print()
+                print("Envy Matrix if change x with others:")
+                self.print_2D(data.util_if_change_bird_eye_matrix)
+                print()
+                print("Envy Matrix Score")
+                self.print_2D(data.envy_score_bird_eye_matrix)
+                print()
+                print("Max Envy")
+                print(data.envy_bird_eye_max)
+
+        return data
+
+    def print_2D(self, matrix):
+        for v in matrix:
+            print(v)
 
 
 
-
-    def is_terminated(self):  # abs method, is algorithm self terminated before max termination
-        for agent in self.agents:
-            if not agent.is_terminated():
-                return False
-        return True
 
     # 1.6 called by execute, organize the messages in a map. the key is the receiver and the values are the msgs received
     def agents_receive_msgs(self, msgs_to_send):
@@ -225,32 +340,40 @@ class Mailer(object):
 
 
 
+
 # ------------
 
 class MailerIterations(Mailer):
-    def __init__(self, problem_id, agents, missions, delay_protocol, termination,debug_print_problem, is_random, is_include_data):
-        Mailer.__init__(self, problem_id, agents, missions, delay_protocol, termination,debug_print_problem, is_random, is_include_data)
+    def __init__(self, problem_id, agents, missions, delay_protocol, termination, debug_print_problem, is_random,
+                 is_include_data):
+        Mailer.__init__(self, problem_id, agents, missions, delay_protocol, termination, debug_print_problem, is_random,
+                        is_include_data)
 
     # ---------
     # 1. initiate the simulator
     def execute_specific(self):
-        flag_pass_first = False
         for iteration in range(-1, self.termination):
-            if self.debug_print_problem:
-                print("----iteration",iteration,"----")
-
-            self.agents_react_to_msgs(flag_pass_first)
-            self.create_data(iteration, self.debug_print_problem)
+            self.agents_react_to_msgs(iteration)
+            if iteration == 0:
+                previous_data = self.create_data(time=iteration, debug_print_problem=self.debug_print_problem,
+                                      previous_data=None)
+            if iteration > 0:
+                previous_data = self.create_data(time = iteration, debug_print_problem = self.debug_print_problem, previous_data = previous_data)
             if self.is_terminated():
                 break
             msgs_to_send = self.handle_msgs()
             self.agents_receive_msgs(msgs_to_send)
-            flag_pass_first = True
         print("finish run")
 
-    def agents_react_to_msgs(self, flag_pass_first):
+    def is_terminated(self):
         for agent in self.agents:
-            if not flag_pass_first:
+            if agent.is_fisher_phase_I:
+                return False
+        return True
+
+    def agents_react_to_msgs(self, iteration):
+        for agent in self.agents:
+            if iteration == -1:
                 agent.initialize()
             else:
                 agent.compute()

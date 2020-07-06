@@ -24,9 +24,10 @@ class MsgFisher(Msg):
 
 # From agent to mission
 class MsgFisherBid(MsgFisher):
-    def __init__(self, sender_id, context, time_stamp, mission_receiver_id, receiver_id=None):
+    def __init__(self, sender_id, context, time_stamp, mission_receiver_id,sender_is_phase_I, receiver_id=None):
         MsgFisher.__init__(self, sender_id, receiver_id, context, time_stamp)
         self.mission_receiver_id = mission_receiver_id
+        self.sender_is_phase_I = sender_is_phase_I
 
     def str_specific(self):
         return "bid", self.context
@@ -34,12 +35,13 @@ class MsgFisherBid(MsgFisher):
 
 # From mission to agent
 class MsgFisherAllocation(MsgFisher):
-    def __init__(self, sender_id, receiver_id, context, time_stamp, mission_sender_id):
+    def __init__(self, sender_id, receiver_id, context, time_stamp, mission_sender_id, mission_converge):
         MsgFisher.__init__(self, sender_id, receiver_id, context, time_stamp)
         self.mission_sender_id = mission_sender_id
+        self.mission_converge = mission_converge
 
-        def str_specific(self):
-            return "allocation", self.context
+    def str_specific(self):
+        return "allocation", self.context
 
 
 class MsgFisherMissionConverge(MsgFisher):

@@ -1,10 +1,17 @@
 from msgs import Msg
 from problem_entities import Mission
 
+
+ttt = []
+ttt.append(2)
+ttt.append(45)
+ttt.append(34.2)
+ttt.append(25)
+print("max of ttt is",max(ttt))
+
 ans = []
 ans.append(1)
 print(str(1 in ans))
-
 ans1= []
 ans1.append(Mission(1))
 ans1.append(Mission(5))
@@ -20,6 +27,7 @@ ans["a"]=1
 ans["b"]=2
 ans["c"]=3
 print(len(ans))
+
 #print(str(abs(-3)))
 
 sorted_msgs = sorted(msgs, key=Msg.comparator_by_msg_delay)

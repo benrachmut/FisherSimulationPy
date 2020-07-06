@@ -10,7 +10,7 @@ def get_params_random(portion_extra_desire, missions_num, is_random_input, algor
     # algorithm = 1 -> fisher
 
     if is_random_input:
-        if algorithm == 1:
+        if algorithm == 1 or algorithm == 2:
             ans['mu_util'] = mu_util
             ans['mu_util_extra_desire'] = mu_util * factor_mu_extra_desire
             ans['std_util'] = std_util
@@ -20,16 +20,18 @@ def get_params_random(portion_extra_desire, missions_num, is_random_input, algor
     return ans
 
 
-def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2):
+def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_counter_converges= 0):
     # to create fisher simulator and create random
     ans = {}
     ans['algorithm_number'] = algorithm
-    if algorithm == 1:
+    if algorithm == 1 or algorithm == 2:
         # init_option = 0 -> if x_ij did was not received treat it as 0,
         # init_option = 1 -> if x_ij did was not received treat it as 1,
         # init_option = 2 -> 1/number of missions
         ans['threshold'] = threshold
         ans['init_option'] = init_option
+    if algorithm == 2:
+        ans['mission_counter_converges'] = mission_counter_converges
 
     return ans
 
@@ -87,17 +89,15 @@ def create_mailer(problem, delay_protocol, mailer_parameters, debug_print_proble
     problem_id = problem.prob_id
     is_include_data = mailer_parameters['include_data']
 
-
     if is_mailer_thread:
         print("to do mailer thread")
     else:
         return MailerIterations(problem_id = problem_id,agents=agents, missions=missions, delay_protocol=delay_protocol,
                                 termination=termination, debug_print_problem = debug_print_problem, is_random=is_random, is_include_data = is_include_data)
 
-
 def solve_problems(problems_input, protocols_input, mailer_params, debug_print_problem=False):
     is_include_data = mailer_params['include_data']
-    problems_solved_per_protocol = {}
+    data_per_protocol = {}
     for protocol in protocols_input:
         mailers_with_same_delay_protocol = []
         for problem in problems_input:
@@ -106,9 +106,23 @@ def solve_problems(problems_input, protocols_input, mailer_params, debug_print_p
             mailer = create_mailer(problem=problem, delay_protocol=protocol, mailer_parameters=mailer_params, debug_print_problem = debug_print_problem)
             mailer.execute()
             if is_include_data:
-                mailers_with_same_delay_protocol.append(mailer.data_map())
-        problems_solved_per_protocol[protocol] = mailers_with_same_delay_protocol
-    return problems_solved_per_protocol
+                mailers_with_same_delay_protocol.append(mailer.results)
+        data_per_protocol[protocol] = mailers_with_same_delay_protocol
+    return data_per_protocol
+
+
+def get_max_iteration(data_per_protocol):
+    for protocol in data_per_protocol.keys():
+        max_per_protocol = []
+        for result in data_per_protocol[protocol]:
+            vvv = []
+            for i in result.values():
+                vvv.append(i)
+
+
+def create_data(data_per_protocol):
+    max_iteration = get_max_iteration(data_per_protocol)
+    #global_rx = create_global_rx(data_per_protocol)
 
 
 if __name__ == "__main__":
@@ -120,13 +134,17 @@ if __name__ == "__main__":
     is_random_input = True
 
     # params_algorithm input from user
-    algorithm_input = 1
-    threshold_input = 0.00001
-    init_option_input = 2
+    algorithm_input = 2 # 1: asynchronous without termination, 2: asynchronous with termination
+    init_option_input = 2 # 1:create input from simulation of problem, 2: random
+
+    # Fisher
+    threshold_input = 0.01
+    # Fisher v2
+    mission_counter_converges_input = 0
 
     # params_problem input from user
-    agents_num_input = 2
-    missions_num_input = 2
+    agents_num_input = 4
+    missions_num_input = 5
     start_input = 0
     end_input = 2
 
@@ -147,7 +165,8 @@ if __name__ == "__main__":
                                       factor_mu_extra_desire=factor_mu_extra_desire_input, std_util=std_util_input)
 
     params_algorithm = get_params_algorithm(algorithm=algorithm_input, threshold=threshold_input,
-                                            init_option=init_option_input)
+                                            init_option=init_option_input, mission_counter_converges =
+                                            mission_counter_converges_input)
 
     params_problem = get_params_problem(algorithm=algorithm_input, random_params=params_random,
                                         agents_num=agents_num_input,
@@ -162,4 +181,5 @@ if __name__ == "__main__":
     # -----------RUN SIMULATION-------------
 
     problems = create_problems(problem_p=params_problem)
-    full_data, to_avg_map = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
+    data_per_protocol = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
+    create_data(data_per_protocol)
