@@ -69,7 +69,7 @@ class Mission(object):
             return
         if delta <= self.threshold:
             self.counter_converges = self.counter_converges + 1
-            if self.counter_converges == self.counter_converges_UB:
+            if self.counter_converges >= self.counter_converges_UB:
                 self.termination_flag = True
             else:
                 self.termination_flag = False
@@ -439,6 +439,7 @@ class AgentFisherV2(AgentFisher):
                 #counter = counter+1
             #if counter == 4:
                 #print(2)
+
             if not msg.mission_converge:
                 return False
         self.is_fisher_phase_I = False

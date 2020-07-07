@@ -24,7 +24,7 @@ class ProtocolDelay(object):
         self.gamma = gamma
         self.gamma_counter = 0
 
-    def create_delay_specific(self, distance_ij ):
+    def create_delay_specific(self, distance_ij):
         raise NotImplementedError()
 
     def create_delay(self, distance_ij=1):
@@ -35,7 +35,7 @@ class ProtocolDelay(object):
         if rnd < self.gamma:
             return None
         else:
-            self.create_delay_specific(distance_ij = distance_ij)
+            self.create_delay_specific(distance_ij=distance_ij)
 
     def set_seed_specific(self, seed):
         raise NotImplementedError()
@@ -44,8 +44,11 @@ class ProtocolDelay(object):
         self.gamma_counter = seed * 123
         self.set_seed_specific(seed)
 
-    def __str__(self):
-        return str(self.perfect_communication) + "," + str(self.is_time_stamp) + "," + str(self.gamma)
+    def data_of_protocol(self):
+        return [self.perfect_communication, self.is_time_stamp, self.gamma] + self.data_of_protocol_specific()
+
+    def data_of_protocol_specific(self):
+        raise NotImplementedError()
 
 
 class ProtocolDelayEl(ProtocolDelay):
@@ -96,10 +99,8 @@ class ProtocolDelayEl(ProtocolDelay):
         random.seed(self.rnd_normal_counter * 34)
         return random.gauss(mu=mu, sigma=self.sigma)
 
-    def __str__(self):
-        super.__str__() + "," + str(self.gamma) + "," + str(self.mu_min) + "," + str(self.n1) + "," + str(
-            self.n2) + "," + str(self.n3) + "," + str(self.n4) + "," + str(self.p1) + "," + str(self.p2) + "," + str(
-            self.p3)
+    def data_of_protocol_specific(self):
+        return [self.gamma, self.mu_min, self.n1, self.n2, self.n3, self.n4, self.p1, self.p2, self.p3]
 
 
 # -----------------**CREATOR DELAYS**---------------
@@ -143,7 +144,7 @@ class CreatorDelays(object):
 
     @staticmethod
     def header():
-        return "Perfect Communication,Time Stamp Use"
+        return ["Perfect Communication", "Time Stamp Use"]
 
 
 class CreatorDelaysEl(CreatorDelays):
@@ -174,4 +175,17 @@ class CreatorDelaysEl(CreatorDelays):
 
     @staticmethod
     def header():
-        return CreatorDelays.header() + ",Gamma,Sigma,Mu_min,n1,n2,n3,n4,p1,p2,p3"
+        ans = []
+        for single_header in CreatorDelays.header():
+            ans.append(single_header)
+        ans.append("Gamma")
+        ans.append("Sigma")
+        ans.append("Mu_min")
+        ans.append("n1")
+        ans.append("n2")
+        ans.append("n3")
+        ans.append("n4")
+        ans.append("p1")
+        ans.append("p2")
+        ans.append("p3")
+        return ans

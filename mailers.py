@@ -267,6 +267,8 @@ class Mailer(object):
                 if time > 0:
                     print("delta abs price:")
                     print(data.delta_abs_price)
+                    print("delta abs price per mission:")
+                    print(data.delta_abs_price_per_mission)
                     print()
                     print("delta non_abs price:")
                     print(data.delta_non_abs_price)
@@ -355,10 +357,9 @@ class MailerIterations(Mailer):
         for iteration in range(-1, self.termination):
             self.agents_react_to_msgs(iteration)
             if iteration == 0:
-                previous_data = self.create_data(time=iteration, debug_print_problem=self.debug_print_problem,
-                                      previous_data=None)
+                previous_data = self.create_data(time=iteration, debug_print_problem=self.debug_print_problem, previous_data=None)
             if iteration > 0:
-                previous_data = self.create_data(time = iteration, debug_print_problem = self.debug_print_problem, previous_data = previous_data)
+                previous_data = self.create_data(time=iteration, debug_print_problem=self.debug_print_problem, previous_data=previous_data)
             if self.is_terminated():
                 break
             msgs_to_send = self.handle_msgs()
