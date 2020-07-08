@@ -45,18 +45,47 @@ class ProtocolDelay(object):
         self.set_seed_specific(seed)
 
     def data_of_protocol(self):
-        return [self.perfect_communication, self.is_time_stamp, self.gamma] + self.data_of_protocol_specific()
+        return [self.__str__(),self.perfect_communication, self.is_time_stamp, self.gamma] + self.data_of_protocol_specific()
+
+    def __str__(self):
+        return "Timestamp:",self.is_time_stamp,"Lost:",self.gamma,self.str_specific
+
+    def str_specific(self):
+        raise NotImplementedError()
 
     def data_of_protocol_specific(self):
         raise NotImplementedError()
 
 
-class ProtocolDelayEl(ProtocolDelay):
-    def __init__(self, is_time_stamp=False, gamma=0, sigma=0, mu_min=0,
-                 n1=0, n2=0, n3=0, n4=0, p1=0, p2=0, p3=0):
-        ProtocolDelay.__init__(self, perfect_communication=True, is_time_stamp=is_time_stamp, gamma=gamma)
+class ProtocolDelayNormal(ProtocolDelay):
+    def __init__(self, perfect_communication=True, is_time_stamp=False, gamma=0, sigma=0, mu_min=0):
+        ProtocolDelay.__init__(self, perfect_communication=perfect_communication, is_time_stamp=is_time_stamp, gamma = gamma)
 
         self.mu_min = mu_min
+        self.sigma = sigma
+
+        self.rnd_normal_counter = 0
+        #self.rnd_noise_counter = 0
+
+    def str_specific(self):
+        return "Mu:", self.mu_min, "Sigma:", self.sigma
+
+    def set_seed_specific(self, seed):
+        self.rnd_normal_counter = seed * 321
+        #self.rnd_noise_counter = seed * 365
+
+
+    def create_delay_specific(self, distance_ij):
+        return random.gauss(mu=self.mu_min, sigma=self.sigma)
+
+    def data_of_protocol_specific(self):
+        return [self.mu_min, self.sigma]
+
+class ProtocolDelayEl(ProtocolDelayNormal):
+    def __init__(self, perfect_communication = True, is_time_stamp=False, gamma=0, sigma=0, mu_min=0,
+                 n1=0, n2=0, n3=0, n4=0, p1=0, p2=0, p3=0):
+        ProtocolDelayNormal.__init__(self, perfect_communication= perfect_communication, is_time_stamp=is_time_stamp, gamma=gamma, sigma=sigma, mu_min=mu_min)
+
         self.n1 = n1
         self.n2 = n2
         self.n3 = n3
@@ -64,13 +93,13 @@ class ProtocolDelayEl(ProtocolDelay):
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
-        self.sigma = sigma
 
-        self.rnd_normal_counter = 0
         self.rnd_noise_counter = 0
 
-    def set_seed_specific(self, seed):
+    def str_specific(self):
+        return "Mu:",self.mu_min,"Sigma:",self.sigma
 
+    def set_seed_specific(self, seed):
         self.rnd_normal_counter = seed * 321
         self.rnd_noise_counter = seed * 365
 
@@ -100,7 +129,9 @@ class ProtocolDelayEl(ProtocolDelay):
         return random.gauss(mu=mu, sigma=self.sigma)
 
     def data_of_protocol_specific(self):
-        return [self.gamma, self.mu_min, self.n1, self.n2, self.n3, self.n4, self.p1, self.p2, self.p3]
+        return [self.mu_min, self.sigma, self.n1, self.n2, self.n3, self.n4, self.p1, self.p2, self.p3]
+
+
 
 
 # -----------------**CREATOR DELAYS**---------------
@@ -144,14 +175,38 @@ class CreatorDelays(object):
 
     @staticmethod
     def header():
-        return ["Perfect Communication", "Time Stamp Use"]
+        return ["Protocol", "Perfect Communication", "Time Stamp Use", "Gamma"]
 
-
-class CreatorDelaysEl(CreatorDelays):
+class CreatorDelaysNormal(CreatorDelays):
     def __init__(self, perfect_communications=[True], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
-                 sigmas=[10], n1=0, n2=0, n3=0, n4=0, p1=1, p2=0, p3=0):
+                 sigmas=[10]):
         CreatorDelays.__init__(self, perfect_communications, is_time_stamps, gammas)
         self.mu_mins = mu_mins
+        self.sigmas = sigmas
+
+    def create_combination_delay(self, time_stamp, gamma):
+        ans = []
+        for mu_min in self.mu_mins:
+            for sigma in self.sigmas:
+                ans.append(ProtocolDelayNormal(time_stamp, gamma, mu_min, sigma))
+        return ans
+
+    def create_default_protocol(self):
+        return ProtocolDelayNormal()
+
+    @staticmethod
+    def header():
+        ans = []
+        for single_header in CreatorDelays.header():
+            ans.append(single_header)
+        ans.append("Mu")
+        ans.append("Sigma")
+        return ans
+
+class CreatorDelaysEl(CreatorDelaysNormal):
+    def __init__(self, perfect_communications=[True], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
+                 sigmas=[10], n1=0, n2=0, n3=0, n4=0, p1=1, p2=0, p3=0):
+        CreatorDelaysNormal.__init__(self, perfect_communications, is_time_stamps, gammas, mu_mins, sigmas)
         self.n1 = n1
         self.n2 = n2
         self.n3 = n3
@@ -159,7 +214,6 @@ class CreatorDelaysEl(CreatorDelays):
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
-        self.sigmas = sigmas
 
     def create_default_protocol(self):
         return ProtocolDelayEl()
@@ -178,9 +232,8 @@ class CreatorDelaysEl(CreatorDelays):
         ans = []
         for single_header in CreatorDelays.header():
             ans.append(single_header)
-        ans.append("Gamma")
-        ans.append("Sigma")
         ans.append("Mu_min")
+        ans.append("Sigma")
         ans.append("n1")
         ans.append("n2")
         ans.append("n3")

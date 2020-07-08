@@ -1,4 +1,4 @@
-from communication import CreatorDelaysEl
+from communication import CreatorDelaysEl, CreatorDelaysNormal
 from mailers import MailerIterations
 from problem_entities import Problem_Distributed
 import statistics
@@ -63,6 +63,8 @@ def get_params_mailer(termination=1000, is_random=True, is_mailer_thread=False, 
 
 def get_protocols(type_communication=1):
     if type_communication == 1:
+        creator_delay = CreatorDelaysNormal()
+    if type_communication == 2:
         creator_delay = CreatorDelaysEl()
 
     return creator_delay.create_protocol_delay(), creator_delay.header()
@@ -151,42 +153,113 @@ def create_mean_data_per_protocol(data_per_protocol, max_per_protocol):
     for protocol, list_of_dicts in data_per_protocol.items():
         dict_per_protocol_mean = []
         iteration_max = max_per_protocol[protocol]
-        for iteration_current in range(1,iteration_max+1):
+        for iteration_current in range(1, iteration_max+1):
             rx_bird_eye = []
             rx_agent_view = []
             rx_mono = []
             envy = []
+            rx_per_agent_map= {}
+            mono_per_agent_rx_weakly_map= {}
+
             for dict_per_mailer in list_of_dicts:
                 iteration_for_dict = get_iteration_for_dict(dict_per_mailer, iteration_current)
                 data_object = dict_per_mailer[iteration_for_dict]
 
                 rx_bird_eye.append(data_object.rx_bird_eye_sum)
                 rx_agent_view.append(data_object.rx_agent_view_sum)
-                if iteration_for_dict >= 1:
-                    rx_mono.append(data_object.mono_global_rx_weakly)
+                rx_mono.append(data_object.mono_global_rx_weakly)
                 envy.append(data_object.envy_bird_eye_max)
-            results_per_iteration = [iteration_current,statistics.mean(rx_bird_eye), statistics.mean(rx_agent_view),
+                #rx_per_agent_map
+                #mono_per_agent_rx_weakly
+                for agent, personal_rx in data_object.rx_per_agent_map.items():
+                    if agent.agent_id not in rx_per_agent_map:
+                        rx_per_agent_map[agent.agent_id] = []
+                    rx_per_agent_map[agent.agent_id].append(personal_rx)
+
+                for agent, personal_mono in data_object.mono_per_agent_rx_weakly.items():
+                    if agent.agent_id not in mono_per_agent_rx_weakly_map:
+                        mono_per_agent_rx_weakly_map[agent.agent_id] = []
+                    mono_per_agent_rx_weakly_map[agent.agent_id].append(personal_mono)
+
+            results_per_iteration_global = [iteration_current, statistics.mean(rx_bird_eye), statistics.mean(rx_agent_view),
                                      statistics.mean(rx_mono), statistics.mean(envy)]
+            mean_per_agent_rx = []
+            for agent_id, list_of_rx in rx_per_agent_map.items():
+                mean_per_agent_rx.append(statistics.mean(list_of_rx))
+
+            mean_per_agent_mono = []
+            for agent_id, list_of_mono in mono_per_agent_rx_weakly_map.items():
+                mean_per_agent_mono.append(statistics.mean(list_of_mono))
+
+            results_per_iteration = results_per_iteration_global + mean_per_agent_rx + mean_per_agent_mono
+
             dict_per_protocol_mean.append(results_per_iteration)
         ans[protocol] = dict_per_protocol_mean
 
-    results_header = ["Time","rx_bird_eye","rx_agent_view","rx_mono","max_envy"]
+    results_global_header = ["Time", "RX Bird Eye", "RX Agent View", "RX Mono", "Max Envy"]
+    personal_rx_header = []
+    personal_mono_header = []
+
+    for key in mono_per_agent_rx_weakly_map.keys():
+        personal_rx_header.append("RX agent "+str(key))
+        personal_mono_header.append("Mono RX agent "+str(key))
+
+    results_header = results_global_header+personal_rx_header+personal_mono_header
     return ans, results_header
 
 
-def turn_mean_data_per_protocol_to_df(mean_data_per_protocol, header):
+def turn_mean_data_per_protocol_to_df(mean_data_per_protocol, header, problem_data):
+    ans = {}
+    for protocol, mean_results in mean_data_per_protocol.items():
+        from_list_to_tuples = []
+        protocol_data = protocol.data_of_protocol()
+        for result in mean_results:
+            from_list_to_tuples.append(tuple(problem_data)+tuple(protocol_data)+tuple(result))
+        df = pd.DataFrame(from_list_to_tuples, columns=header)
+        ans[protocol] = df
+        print(df)
+    return ans
 
-    for protocol, mean_results in mean_data_per_protocol:
-        protocol_data = protocol.
 
-def create_data(data_per_protocol, protocols_header):
+def create_global_data(data_per_protocol, protocols_header, problem_header, problem_data):
     max_per_protocol, max_of_all = get_max_iteration(data_per_protocol)
     mean_data_per_protocol, results_header = create_mean_data_per_protocol(data_per_protocol, max_per_protocol)
-    header = protocols_header + results_header
-    df  = turn_mean_data_per_protocol_to_df(mean_data_per_protocol, header)
+    header = problem_header + protocols_header + results_header
+    return turn_mean_data_per_protocol_to_df(mean_data_per_protocol, header, problem_data)
+
+
+def get_avg_last_iteration(data_per_protocol):
+    ans = {}
+    for protocol, list_of_dicts in data_per_protocol.items():
+        per_protocol_list = []
+        for dict_per_mailer in list_of_dicts:
+            max_iteration_per_mailer = max(list(dict_per_mailer.keys()))
+            per_protocol_list.append(max_iteration_per_mailer)
+        mean_last_iter = statistics.mean(per_protocol_list)
+        ans[protocol] = mean_last_iter
+    results_header = ["Termination Time"]
+    return ans, results_header
+
+
+def turn_mean_last_iter_to_df(mean_max_iter_per_protocol, header, problem_data):
+    list_of_tuples = []
+    for protocol, mean_results in mean_max_iter_per_protocol.items():
+        protocol_data = protocol.data_of_protocol()
+        ttt = tuple([mean_results])
+        list_of_tuples.append(tuple(problem_data) + tuple(protocol_data) + ttt)
+    return pd.DataFrame(list_of_tuples, columns=header)
+
+def create_last_data(data_per_protocol, protocols_header, problem_header, problem_data):
+     mean_max_iter_per_protocol, results_header = get_avg_last_iteration(data_per_protocol)
+     header = problem_header + protocols_header + results_header
+     return turn_mean_last_iter_to_df(mean_max_iter_per_protocol, header, problem_data)
+
+def create_data(data_per_protocol, protocols_header, problem_header, problem_data):
+    df_global_per_protocol = create_global_data(data_per_protocol, protocols_header, problem_header, problem_data)
+    df_last_iter = create_last_data(data_per_protocol, protocols_header, problem_header, problem_data)
+    return df_global_per_protocol, df_last_iter
 
 if __name__ == "__main__":
-    #print('Pandas Version:',pd.__version__)
     # params_random input from user
     portion_extra_desire_input = 0.3
     std_util_input = 100
@@ -218,7 +291,7 @@ if __name__ == "__main__":
     type_communication_input = 1
 
     # -----------FOR DEBUG-----------------
-    debug_print_problem = True
+    debug_print_problem = False
 
     params_random = get_params_random(portion_extra_desire=portion_extra_desire_input, missions_num=missions_num_input,
                                       is_random_input=is_random_input,
@@ -246,5 +319,5 @@ if __name__ == "__main__":
 
     problems = create_problems(problem_p=params_problem)
     data_per_protocol = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
-
-    create_data(data_per_protocol, protocols_header)
+    df_per_global, df_last_iter = create_data(data_per_protocol, protocols_header, problem_header,problem_data)
+    print(3)
