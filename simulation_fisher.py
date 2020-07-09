@@ -35,6 +35,9 @@ def algorithm_name(algorithm):
 def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_counter_converges= 0):
     # to create fisher simulator and create random
     ans = {}
+    algo_data = [algorithm_name(algorithm)]
+    algo_header = ["Algorithm"]
+
 
     ans['algorithm_number'] = algorithm
     if algorithm == 1 or algorithm == 2:
@@ -43,10 +46,14 @@ def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_
         # init_option = 2 -> 1/number of missions
         ans['threshold'] = threshold
         ans['init_option'] = init_option
+        algo_data.append(threshold)
+        algo_header.append("Threshold")
     if algorithm == 2:
         ans['mission_counter_converges'] = mission_counter_converges
+        algo_data.append(mission_counter_converges)
+        algo_header.append("Mission Counter Converges'")
 
-    return ans, algorithm_name(algorithm)
+    return ans, algo_data, algo_header
 
 
 def get_params_problem(algorithm, random_params, agents_num, missions_num, start, end, algorithm_params):
@@ -217,7 +224,6 @@ def turn_mean_data_per_protocol_to_df(mean_data_per_protocol, header, problem_da
             from_list_to_tuples.append(tuple(problem_data)+tuple(protocol_data)+tuple(result))
         df = pd.DataFrame(from_list_to_tuples, columns=header)
         ans[protocol] = df
-        print(df)
     return ans
 
 
@@ -259,6 +265,19 @@ def create_data(data_per_protocol, protocols_header, problem_header, problem_dat
     df_last_iter = create_last_data(data_per_protocol, protocols_header, problem_header, problem_data)
     return df_global_per_protocol, df_last_iter
 
+
+def create_csv(df_per_global, df_last_iter, problem_header, problem_data):
+    flag = False
+    for df_i in df_per_global.values():
+        if not flag:
+            df = df_i
+            flag = True
+        else:
+            df = df.append(df_i,ignore_index=True)
+
+
+
+
 if __name__ == "__main__":
     # params_random input from user
     portion_extra_desire_input = 0.3
@@ -298,7 +317,7 @@ if __name__ == "__main__":
                                       algorithm=algorithm_input, mu_util=mu_util_input,
                                       factor_mu_extra_desire=factor_mu_extra_desire_input, std_util=std_util_input)
 
-    params_algorithm, algo_name = get_params_algorithm(algorithm=algorithm_input, threshold=threshold_input,
+    params_algorithm, algo_data, algo_header = get_params_algorithm(algorithm=algorithm_input, threshold=threshold_input,
                                             init_option=init_option_input, mission_counter_converges =
                                             mission_counter_converges_input)
 
@@ -306,8 +325,8 @@ if __name__ == "__main__":
                                         agents_num=agents_num_input,
                                         missions_num=missions_num_input, start=start_input, end=end_input,
                                         algorithm_params=params_algorithm)
-    problem_header = ["Algorithm","Amount Agents","Amount Missions", "Number of Repetitions"]
-    problem_data = [algo_name, agents_num_input, missions_num_input,end_input-start_input]
+    problem_header = ["Amount Agents","Amount Missions", "Number of Repetitions"]+algo_header
+    problem_data = [agents_num_input, missions_num_input,end_input-start_input]+algo_data
 
     params_mailer = get_params_mailer(termination=termination_input, is_mailer_thread=is_mailer_thread_input,
                                       is_random=is_random_input, include_data = include_data_input)
@@ -320,4 +339,5 @@ if __name__ == "__main__":
     problems = create_problems(problem_p=params_problem)
     data_per_protocol = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
     df_per_global, df_last_iter = create_data(data_per_protocol, protocols_header, problem_header,problem_data)
-    print(3)
+    create_csv(df_per_global, df_last_iter, problem_header, problem_data)
+
