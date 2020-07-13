@@ -3,13 +3,25 @@ from builtins import print
 
 from msgs import MsgFisherBid, MsgFisherAllocation, MsgFisherMissionConverge
 
+class LinearUtility(object):
+    def __init__(self, agent, mission, linear_util = -1, Tnow = -1):
+        self.agent = agent
+        self.mission = mission
+        if linear_util == -1:
+            self.linear_utility = self.calculate_parameters(Tnow)
+        else:
+            self.linear_utility = linear_util
+    def calculate_parameters(self, Tnow):
+        print("For Sofi to complete")
+
+    def get_utility(self,ratio = 1):
+        return  ratio*self.linear_utility
 
 class Mission(object):
     def __init__(self, mission_id, extra_desire=False):
         self.mission_id = mission_id
         self.extra_desire = extra_desire
         self.assigned_agent = None
-
         self.bids = {}
         self.message_bids_received = {}  # msg from mission to agent
         self.allocation_placed_for_agents = {}
@@ -185,9 +197,10 @@ class Agent(object):
 
 
 class AgentFisher(Agent):
-    def __init__(self, agent_id, threshold, init_option, problem_id=None):
+    def __init__(self, agent_id, threshold, init_option, util_type, problem_id=None):
         Agent.__init__(self, agent_id, problem_id)
 
+        self.util_type = util_type
         self.init_option = init_option
 
         self.is_fisher_phase_I = True
@@ -226,12 +239,21 @@ class AgentFisher(Agent):
             if is_mission_extra_desired:
                 extra_desire_counter = extra_desire_counter + 78
                 random.seed(extra_desire_counter)
-                util = random.gauss(mu=util_parameters['mu_util_extra_desire'], sigma=util_parameters['std_util'])
+                rand_util = random.gauss(mu=util_parameters['mu_util_extra_desire'], sigma=util_parameters['std_util'])
             else:
                 standard_desire_counter = standard_desire_counter + 457
                 random.seed(standard_desire_counter)
-                util = random.gauss(mu=util_parameters['mu_util'], sigma=util_parameters['std_util'])
-            self.r_i[mission.mission_id] = util
+                rand_util = random.gauss(mu=util_parameters['mu_util'], sigma=util_parameters['std_util'])
+
+            if self.util_type == 0:
+                self.r_i[mission.mission_id] = LinearUtility(agent= self, mission = mission, linear_util=rand_util)
+
+    def set_r_i(self, missions):
+        print("Sofi needs to add Tnow")
+        for mission in missions:
+            if self.util_type == 0:
+                self.r_i[mission.mission_id] = LinearUtility(agent= self, mission = mission, Tnow = 0)
+
 
     # reset specific
     def reset_specific(self):
@@ -271,9 +293,12 @@ class AgentFisher(Agent):
 
     # initialize
     def initialize(self):
-        denominator = sum(self.r_i.values())
+        denominator = 0
+        for util in self.r_i.values():
+            denominator = denominator + util.get_utility()
+
         for mission_id, util in self.r_i.items():
-            self.bid_placed_for_missions[mission_id] = util / denominator
+            self.bid_placed_for_missions[mission_id] = util.get_utility()/denominator
         # print("money agent a_"+str(self.agent_id)+" spent is:"+str(sum(self.bid_placed_for_missions.values())))
         self.flag_bids_to_send = True
 
@@ -340,12 +365,12 @@ class AgentFisher(Agent):
             denominator = 0
             for mission_id in self.x_i.keys():
                 x_ij = self.x_i[mission_id]
-                r_ij = self.r_i[mission_id]
-                denominator = denominator + r_ij * x_ij
+                u_ij = self.r_i[mission_id]
+                denominator = denominator + u_ij.get_utility(x_ij)
             for mission_id in self.x_i.keys():
                 x_ij = self.x_i[mission_id]
-                r_ij = self.r_i[mission_id]
-                rx_ij = r_ij * x_ij
+                u_ij = self.r_i[mission_id]
+                rx_ij = u_ij.get_utility(x_ij)
                 self.bid_placed_for_missions[mission_id] = rx_ij / denominator
 
     def calculate_bids_spent_on_converged_missions(self):
@@ -416,8 +441,8 @@ class AgentFisher(Agent):
 
 #problem_id, agent_id, threshold, init_option=algorithm_params["init_option"]
 class AgentFisherV2(AgentFisher):
-    def __init__(self, agent_id, threshold, init_option, mission_counter_converges, problem_id=None ):
-        AgentFisher.__init__(self, agent_id, threshold, init_option, problem_id)
+    def __init__(self, agent_id, threshold, init_option, mission_counter_converges,  util_type,problem_id=None ):
+        AgentFisher.__init__(self, agent_id=agent_id, threshold=threshold, init_option= init_option, problem_id = problem_id, util_type = util_type)
         self.mission_counter_converges = mission_counter_converges
 
     def reset_specific(self):
@@ -460,9 +485,11 @@ class Problem(object):
         self.agents = []
         self.create_agents(agents_num=agents_num, algorithm=algorithm, algorithm_params=algorithm_params)
 
-        if random_params is not None:
-            for agent in self.agents:
+        for agent in self.agents:
+            if random_params is not None:
                 agent.create_missions_random_utils(util_parameters=random_params, missions=self.missions)
+            else:
+                agent.set_r_i(self.missions)
 
     def print_input(self):
         r = []
@@ -472,7 +499,7 @@ class Problem(object):
                 agent_i = self.find_agent_by_id(agent_id)
                 r_i = []
                 for r_ij in agent_i.get_r_i_as_list():
-                    r_i.append(round(r_ij, 3))
+                    r_i.append(round(r_ij.get_utility(), 3))
                 print(r_i)
 
     def find_agent_by_id(self, agent_id):
@@ -495,11 +522,14 @@ class Problem(object):
         for i in range(agents_num):
             if algorithm == 1:
                 agent = AgentFisher(problem_id=self.prob_id, agent_id=i, threshold=algorithm_params['threshold'],
-                                    init_option=algorithm_params["init_option"])
+                                    init_option=algorithm_params["init_option"],
+                                    util_type=algorithm_params['util_type'])
             if algorithm == 2:
                 agent = AgentFisherV2(problem_id=self.prob_id, agent_id=i, threshold=algorithm_params['threshold'],
                                       init_option=algorithm_params["init_option"], mission_counter_converges =
-                                      algorithm_params["mission_counter_converges"])
+                                      algorithm_params["mission_counter_converges"],
+                                      util_type=algorithm_params['util_type'])
+
             self.agents.append(agent)
 
     def __str__(self):

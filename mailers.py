@@ -98,7 +98,7 @@ class DataPerIteration(object):
                 x_k = self.get_bird_eye_x_per_agent(k)
                 temp_util = 0
                 for mission_id, r_ij in r_i.items():
-                    temp_util = temp_util + r_ij * x_k[mission_id]
+                    temp_util = temp_util + r_ij.get_utility(x_k[mission_id])
                 util_if_can_change_agent_i.append(temp_util)
             ans.append(util_if_can_change_agent_i)
         return ans
@@ -132,8 +132,8 @@ class DataPerIteration(object):
                 mission = self.get_mission_given_id(mission_id)
                 x_ij = mission.allocation_placed_for_agents.get(agent_id)
                 r_ij = agent.r_i[mission_id]
-                matrix_sum = matrix_sum + x_ij * r_ij
-                rx_i.append(x_ij * r_ij)
+                matrix_sum = matrix_sum + r_ij.get_utility(x_ij)
+                rx_i.append(r_ij.get_utility(x_ij))
                 agent.bid_placed_for_missions[mission_id]
 
         return matrix, matrix_sum,bids_agents_pov
@@ -160,9 +160,9 @@ class DataPerIteration(object):
                 x_ij = mission.allocation_placed_for_agents.get(agent_id)
                 bid_ij = mission.bids[agent_id]
                 r_i_list.append(r_ij)
-                matrix_sum = matrix_sum + x_ij * r_ij
-                sum_per_agent = sum_per_agent + x_ij * r_ij
-                rx_i.append(x_ij * r_ij)
+                matrix_sum = matrix_sum + r_ij.get_utility(x_ij)
+                sum_per_agent = sum_per_agent + r_ij.get_utility(x_ij)
+                rx_i.append(r_ij.get_utility(x_ij))
                 x_i.append(x_ij)
                 bids_i.append(bid_ij)
 

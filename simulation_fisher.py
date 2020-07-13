@@ -32,7 +32,7 @@ def algorithm_name(algorithm):
     return  algorithm_name
 
 
-def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_counter_converges= 0):
+def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_counter_converges= 0, util_type = 0):
     # to create fisher simulator and create random
     ans = {}
     algo_data = [algorithm_name(algorithm)]
@@ -46,6 +46,8 @@ def get_params_algorithm(algorithm=1, threshold=0.00001, init_option=2, mission_
         # init_option = 2 -> 1/number of missions
         ans['threshold'] = threshold
         ans['init_option'] = init_option
+        # util_type = 0 ->
+        ans['util_type'] = util_type
         algo_data.append(threshold)
         algo_header.append("Threshold")
     if algorithm == 2:
@@ -266,7 +268,9 @@ def create_data(data_per_protocol, protocols_header, problem_header, problem_dat
     return df_global_per_protocol, df_last_iter
 
 
-def create_csv(df_per_global, df_last_iter, problem_header, problem_data):
+def create_csv(df_per_global, df_last_iter):
+
+
     flag = False
     for df_i in df_per_global.values():
         if not flag:
@@ -274,8 +278,15 @@ def create_csv(df_per_global, df_last_iter, problem_header, problem_data):
             flag = True
         else:
             df = df.append(df_i,ignore_index=True)
+    df.to_csv('File Name.csv', index = False)
 
 
+def create_file_header(problem_header, problem_data, data_per_protocol, protocols_header):
+    file_name_data = ""
+    for i in range(len(problem_header)):
+        file_name_data = file_name_data + problem_header[i] + " = " + str(problem_data[i])+ " , "
+        if i != len(problem_header) - 1:
+            file_name_data = file_name_data
 
 
 if __name__ == "__main__":
@@ -292,6 +303,7 @@ if __name__ == "__main__":
 
     # Fisher
     threshold_input = 0.001
+    util_type_input = 0 # 0: linear util
     # Fisher v2
     mission_counter_converges_input = 5
 
@@ -302,7 +314,7 @@ if __name__ == "__main__":
     end_input = 2
 
     # params_mailer input from user
-    termination_input = 1000
+    termination_input = 200
     is_mailer_thread_input = False
     include_data_input = True
 
@@ -319,7 +331,7 @@ if __name__ == "__main__":
 
     params_algorithm, algo_data, algo_header = get_params_algorithm(algorithm=algorithm_input, threshold=threshold_input,
                                             init_option=init_option_input, mission_counter_converges =
-                                            mission_counter_converges_input)
+                                            mission_counter_converges_input, util_type = util_type_input)
 
     params_problem = get_params_problem(algorithm=algorithm_input, random_params=params_random,
                                         agents_num=agents_num_input,
@@ -338,6 +350,7 @@ if __name__ == "__main__":
 
     problems = create_problems(problem_p=params_problem)
     data_per_protocol = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
-    df_per_global, df_last_iter = create_data(data_per_protocol, protocols_header, problem_header,problem_data)
-    create_csv(df_per_global, df_last_iter, problem_header, problem_data)
+    df_per_global, df_last_iter = create_data(data_per_protocol, protocols_header, problem_header, problem_data)
+    file_header = create_file_header(problem_header, problem_data, data_per_protocol, protocols_header)
+    create_csv(df_per_global, df_last_iter)
 
