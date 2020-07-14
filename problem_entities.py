@@ -4,18 +4,19 @@ from builtins import print
 from msgs import MsgFisherBid, MsgFisherAllocation, MsgFisherMissionConverge
 
 class LinearUtility(object):
-    def __init__(self, agent, mission, linear_util = -1, Tnow = -1):
+    def __init__(self, agent, mission, linear_util = -1):
         self.agent = agent
         self.mission = mission
         if linear_util == -1:
-            self.linear_utility = self.calculate_parameters(Tnow)
+            self.linear_utility = self.calculate_parameters()
         else:
             self.linear_utility = linear_util
-    def calculate_parameters(self, Tnow):
+    def calculate_parameters(self):
         print("For Sofi to complete")
 
     def get_utility(self,ratio = 1):
-        return  ratio*self.linear_utility
+        return ratio*self.linear_utility
+
 
 class Mission(object):
     def __init__(self, mission_id, extra_desire=False):

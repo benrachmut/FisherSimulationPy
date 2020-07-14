@@ -45,10 +45,13 @@ class ProtocolDelay(object):
         self.set_seed_specific(seed)
 
     def data_of_protocol(self):
-        return [self.__str__(),self.perfect_communication, self.is_time_stamp, self.gamma] + self.data_of_protocol_specific()
+        return [self.str_represent(),self.perfect_communication, self.is_time_stamp, self.gamma] + self.data_of_protocol_specific()
 
     def __str__(self):
-        return "Timestamp:",self.is_time_stamp,"Lost:",self.gamma,self.str_specific
+        return self.str_represent()
+
+    def str_represent(self):
+        return "Timestamp:",self.is_time_stamp,"Lost:",self.gamma,self.str_specific()
 
     def str_specific(self):
         raise NotImplementedError()
@@ -178,7 +181,7 @@ class CreatorDelays(object):
         return ["Protocol", "Perfect Communication", "Time Stamp Use", "Gamma"]
 
 class CreatorDelaysNormal(CreatorDelays):
-    def __init__(self, perfect_communications=[True], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
+    def __init__(self, perfect_communications=[True, False], is_time_stamps=[True, False], gammas=[0], mu_mins=[10],
                  sigmas=[10]):
         CreatorDelays.__init__(self, perfect_communications, is_time_stamps, gammas)
         self.mu_mins = mu_mins
@@ -204,7 +207,7 @@ class CreatorDelaysNormal(CreatorDelays):
         return ans
 
 class CreatorDelaysEl(CreatorDelaysNormal):
-    def __init__(self, perfect_communications=[True], is_time_stamps=[True, False], gammas=[0.02], mu_mins=[10],
+    def __init__(self, perfect_communications=[True, False], is_time_stamps=[True, False], gammas=[0], mu_mins=[10],
                  sigmas=[10], n1=0, n2=0, n3=0, n4=0, p1=1, p2=0, p3=0):
         CreatorDelaysNormal.__init__(self, perfect_communications, is_time_stamps, gammas, mu_mins, sigmas)
         self.n1 = n1

@@ -48,14 +48,27 @@ class DataPerIteration(object):
 
             mono_per_agent[agent_id] = monotonic_score_per_agent
 
-        vvv=[]
-        for v in mono_per_agent.values():
-            vvv.append(v)
-        is_overall_mono = mean(vvv)
-        if is_overall_mono == 1:
-            overall_mono = 1
+
+        previous_rx_sum = previous_data.rx_bird_eye_sum
+        if weakly:
+            if previous_rx_sum <= self.rx_bird_eye_sum:
+                overall_mono = 1
+            else:
+                overall_mono = 0
         else:
-            overall_mono = 0
+            if previous_rx_sum < self.rx_bird_eye_sum:
+                overall_mono = 1
+            else:
+                overall_mono = 0
+
+        #vvv=[]
+        #for v in mono_per_agent.values():
+        #    vvv.append(v)
+        #is_overall_mono = mean(vvv)
+        #if is_overall_mono == 1:
+        #    overall_mono = 1
+        #else:
+        #    overall_mono = 0
         return mono_per_agent, overall_mono
 
     def get_prices(self):
