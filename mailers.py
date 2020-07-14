@@ -119,7 +119,10 @@ class DataPerIteration(object):
     def get_bird_eye_x_per_agent(self, k):
         ans = {}
         for mission in self.missions:
-            ans[mission.mission_id] = mission.allocation_placed_for_agents[k]
+            if k in mission.allocation_placed_for_agents:
+                ans[mission.mission_id] = mission.allocation_placed_for_agents[k]
+            else:
+                ans[mission.mission_id] = 0
         return ans
 
     def get_agent_given_id(self, i):
@@ -143,10 +146,10 @@ class DataPerIteration(object):
 
             for mission_id, x_ij_agent_view in agent.x_i.items():
                 mission = self.get_mission_given_id(mission_id)
-                x_ij = mission.allocation_placed_for_agents.get(agent_id)
+                #x_ij = mission.allocation_placed_for_agents[agent_id]
                 r_ij = agent.r_i[mission_id]
-                matrix_sum = matrix_sum + r_ij.get_utility(x_ij)
-                rx_i.append(r_ij.get_utility(x_ij))
+                matrix_sum = matrix_sum + r_ij.get_utility(x_ij_agent_view)
+                rx_i.append(r_ij.get_utility(x_ij_agent_view))
                 agent.bid_placed_for_missions[mission_id]
 
         return matrix, matrix_sum,bids_agents_pov
@@ -171,7 +174,12 @@ class DataPerIteration(object):
             for mission_id, r_ij in r_i.items():
                 mission = self.get_mission_given_id(mission_id)
                 x_ij = mission.allocation_placed_for_agents.get(agent_id)
-                bid_ij = mission.bids[agent_id]
+                if x_ij is None:
+                    x_ij = 0
+                if agent_id in mission.bids:
+                    bid_ij = mission.bids[agent_id]
+                else:
+                    bid_ij = None
                 r_i_list.append(r_ij)
                 matrix_sum = matrix_sum + r_ij.get_utility(x_ij)
                 sum_per_agent = sum_per_agent + r_ij.get_utility(x_ij)
@@ -222,7 +230,7 @@ class Mailer(object):
 
     def send_msg(self, msg):
         delay = self.delay.create_delay()
-        if delay is None or delay < 0:
+        if delay < 0:
             delay = 0
         self.delays.append(delay)
         msg.delay = delay
@@ -273,37 +281,37 @@ class Mailer(object):
             print()
             print("--------------------iteration:",time-1,"--------------------")
             print()
-            if time%2 == 0:
-                print("bids agent pov matrix:")
-                self.print_2D(data.bids_agents_pov)
+            #if time%2 == 0:
+            print("bids agent pov matrix:")
+            self.print_2D(data.bids_agents_pov)
+            print()
+            if time > 0:
+                print("delta abs price:")
+                print(data.delta_abs_price)
+                print("delta abs price per mission:")
+                print(data.delta_abs_price_per_mission)
                 print()
-                if time > 0:
-                    print("delta abs price:")
-                    print(data.delta_abs_price)
-                    print("delta abs price per mission:")
-                    print(data.delta_abs_price_per_mission)
-                    print()
-                    print("delta non_abs price:")
-                    print(data.delta_non_abs_price)
-                    print()
-            else:
-                print("X matrix:")
-                self.print_2D(data.x_matrix)
+                print("delta non_abs price:")
+                print(data.delta_non_abs_price)
                 print()
-                print("RX bird eye matrix:")
-                self.print_2D(data.rx_bird_eye_matrix)
-                print()
-                print("RX sum:")
-                print(data.rx_bird_eye_sum)
-                print()
-                print("Envy Matrix if change x with others:")
-                self.print_2D(data.util_if_change_bird_eye_matrix)
-                print()
-                print("Envy Matrix Score")
-                self.print_2D(data.envy_score_bird_eye_matrix)
-                print()
-                print("Max Envy")
-                print(data.envy_bird_eye_max)
+            #else:
+            print("X matrix:")
+            self.print_2D(data.x_matrix)
+            print()
+            print("RX bird eye matrix:")
+            self.print_2D(data.rx_bird_eye_matrix)
+            print()
+            print("RX sum:")
+            print(data.rx_bird_eye_sum)
+            print()
+            print("Envy Matrix if change x with others:")
+            self.print_2D(data.util_if_change_bird_eye_matrix)
+            print()
+            print("Envy Matrix Score")
+            self.print_2D(data.envy_score_bird_eye_matrix)
+            print()
+            print("Max Envy")
+            print(data.envy_bird_eye_max)
 
         return data
 
@@ -368,6 +376,7 @@ class MailerIterations(Mailer):
     # 1. initiate the simulator
     def execute_specific(self):
         for iteration in range(-1, self.termination):
+            print("from mailer ------iteration",iteration,"------")
             self.agents_react_to_msgs(iteration)
             if iteration == 0:
                 previous_data = self.create_data(time=iteration, debug_print_problem=self.debug_print_problem, previous_data=None)
@@ -394,6 +403,15 @@ class MailerIterations(Mailer):
             agent.msg_time_stamp = agent.msg_time_stamp + 1
             agent.send_msgs()
 
+
+    def print_msgs(self,msg_box, ans):
+        print("message box")
+        for msg in msg_box:
+            print(msg.__str__())
+        print("To send")
+        for msg in ans:
+            print(msg.__str__())
+
     # 1.5 called by execute, decrease msg delay by 1 and return map by receivers, returns msgs with no delay
     def handle_msgs(self):
         sorted_msgs = sorted(self.msg_box, key=Msg.comparator_by_msg_delay)
@@ -404,7 +422,14 @@ class MailerIterations(Mailer):
                 ans.append(msg)
             else:
                 msg.delay = msg.delay - 1
-        self.msg_box = [i for i in self.msg_box if i.delay >= 0]
+
+        temp_msg_box = []
+        for msg in self.msg_box:
+            if msg not in ans:
+                temp_msg_box.append(msg)
+        self.msg_box = temp_msg_box
+       # self.print_msgs(self.msg_box, ans)
+
         return ans
 
     # ---------

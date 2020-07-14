@@ -7,7 +7,8 @@ class Msg(object):
         self.delay = None
 
     def __str__(self):
-        return "sender",self.sender_id,"receiver",self.receiver_id,self.str_specific()
+        return "sender",str(self.sender_id),"receiver", str(self.receiver_id),"delay",str(self.delay),"timestamp",str(self.time_stamp), \
+               self.str_specific()
 
     @staticmethod
     def comparator_by_msg_delay(msg):
@@ -30,7 +31,7 @@ class MsgFisherBid(MsgFisher):
         self.sender_is_phase_I = sender_is_phase_I
 
     def str_specific(self):
-        return "bid", self.context
+        return "bid", str(self.context),"mission_receiver_id",str(self.mission_receiver_id)
 
 
 # From mission to agent
@@ -41,7 +42,7 @@ class MsgFisherAllocation(MsgFisher):
         self.mission_converge = mission_converge
 
     def str_specific(self):
-        return "allocation", self.context
+        return "allocation", self.context, "mission_sender_id",str(self.mission_sender_id)
 
 
 class MsgFisherMissionConverge(MsgFisher):

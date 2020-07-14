@@ -60,7 +60,7 @@ class Mission(object):
 
     def receive_a_single_msg_bid(self, msg):
         self.bids[msg.sender_id] = msg.context
-        self.message_bids_received = msg
+        self.message_bids_received[msg.sender_id] = msg
         #is_sender_in_phase_I = msg.sender_is_phase_I
         #if not is_sender_in_phase_I:
         #    self.change_allocation = False
@@ -108,8 +108,8 @@ class Mission(object):
             self.bids[agent_id] = init_value
 
     def get_time_stamp(self, sender_id):
-        if sender_id in self.message_bids_received:
-            return self.message_bids_received.get(sender_id)
+        if sender_id in self.message_bids_received.keys():
+            return self.message_bids_received[sender_id].time_stamp
         else:
             return -1
 

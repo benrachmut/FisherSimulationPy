@@ -122,7 +122,11 @@ def create_mailer(problem, delay_protocol, mailer_parameters, debug_print_proble
 def solve_problems(problems_input, protocols_input, mailer_params, debug_print_problem=False):
     is_include_data = mailer_params['include_data']
     data_per_protocol = {}
+    counter = 0
     for protocol in protocols_input:
+        counter = counter+1
+        if counter == 2:
+            print("delete me from simulation fisher")
         mailers_with_same_delay_protocol = []
         for problem in problems_input:
             if debug_print_problem:
@@ -316,7 +320,7 @@ if __name__ == "__main__":
     end_input = 1
 
     # params_mailer input from user
-    termination_input = 200
+    termination_input = 1000
     is_mailer_thread_input = False
     include_data_input = True
 
@@ -324,7 +328,7 @@ if __name__ == "__main__":
     type_communication_input = 1
 
     # -----------FOR DEBUG-----------------
-    debug_print_problem = False
+    debug_print_problem = True
 
     params_random = get_params_random(portion_extra_desire=portion_extra_desire_input, missions_num=missions_num_input,
                                       is_random_input=is_random_input,
@@ -352,6 +356,8 @@ if __name__ == "__main__":
 
     problems = create_problems(problem_p=params_problem)
     data_per_protocol = solve_problems(problems_input = problems, protocols_input = protocols, mailer_params = params_mailer, debug_print_problem = debug_print_problem )
+
+
     df_per_global, df_last_iter = create_data(data_per_protocol, protocols_header, problem_header, problem_data)
     file_header = create_file_header(problem_header, problem_data)
     create_csv(df_per_global, df_last_iter, file_name=file_header)

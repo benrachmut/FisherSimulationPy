@@ -35,7 +35,7 @@ class ProtocolDelay(object):
         if rnd < self.gamma:
             return None
         else:
-            self.create_delay_specific(distance_ij=distance_ij)
+            return self.create_delay_specific(distance_ij=distance_ij)
 
     def set_seed_specific(self, seed):
         raise NotImplementedError()
@@ -181,8 +181,8 @@ class CreatorDelays(object):
         return ["Protocol", "Perfect Communication", "Time Stamp Use", "Gamma"]
 
 class CreatorDelaysNormal(CreatorDelays):
-    def __init__(self, perfect_communications=[True, False], is_time_stamps=[True, False], gammas=[0], mu_mins=[10],
-                 sigmas=[10]):
+    def __init__(self, perfect_communications=[True,False], is_time_stamps=[False], gammas=[0], mu_mins=[10],
+                 sigmas=[3]):
         CreatorDelays.__init__(self, perfect_communications, is_time_stamps, gammas)
         self.mu_mins = mu_mins
         self.sigmas = sigmas
@@ -191,7 +191,7 @@ class CreatorDelaysNormal(CreatorDelays):
         ans = []
         for mu_min in self.mu_mins:
             for sigma in self.sigmas:
-                ans.append(ProtocolDelayNormal(time_stamp, gamma, mu_min, sigma))
+                ans.append(ProtocolDelayNormal(perfect_communication=False, is_time_stamp =time_stamp, gamma = gamma, mu_min = mu_min, sigma = sigma))
         return ans
 
     def create_default_protocol(self):
@@ -226,8 +226,9 @@ class CreatorDelaysEl(CreatorDelaysNormal):
         for mu_min in self.mu_mins:
             for sigma in self.sigmas:
                 ans.append(
-                    ProtocolDelayEl(time_stamp, gamma, mu_min, sigma, self.n1, self.n2, self.n3, self.n4, self.p1,
-                                    self.p2, self.p3))
+                    ProtocolDelayEl(perfect_communication=False,time_stamp = time_stamp, gamma = gamma, mu_min = mu_min, sigma= sigma, n1=self.n1,
+                                    n2= self.n2, n3 = self.n3, n4 = self.n4, p1= self.p1,
+                                    p2 = self.p2, p3 = self.p3))
         return ans
 
     @staticmethod
